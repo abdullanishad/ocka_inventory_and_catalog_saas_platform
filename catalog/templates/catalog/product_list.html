@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}All Products{% endblock %}
+
+{% block content %}
+<div class="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+  <!-- Title -->
+  <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">All Products</h1>
+
+  <!-- Shop by Wholesalers (stories) -->
+  <section class="mt-6">
+    <h2 class="text-lg font-semibold text-gray-900">Shop by Wholesalers</h2>
+
+    <!-- Story rail -->
+    <div
+      id="wh-rail"
+      class="mt-3 flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 select-none"
+    >
+      {# ALL #}
+      <!-- {% with q=request.GET.copy %}{% if q.wholesaler %}{% templatetag openvariable %} q.pop 'wholesaler' True {% templatetag closevariable %}{% endif %}{% endwith %} -->
+      <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}"
+         class="flex flex-col items-center gap-1 snap-start shrink-0">
+        <span class="grid place-items-center rounded-full p-[2px]
+                     bg-gradient-to-br from-[#2E65FF] to-[#5B8CFF]">
+          <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white">
+            <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
+                         bg-[#2E65FF] text-white font-bold text-sm md:text-base">All</span>
+          </span>
+        </span>
+        <span class="text-[13px] text-gray-600">All</span>
+      </a>
+
+      {# Wholesaler pills #}
+      {% for w in wholesalers %}
+  <a href="?wholesaler={{ w.id }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}"
+     class="flex flex-col items-center gap-1 snap-start shrink-0">
+     
+    <span class="grid place-items-center rounded-full p-[2px]
+                 {% if request.GET.wholesaler|stringformat:'s' == w.id|stringformat:'s' %}
+                   ring-4 ring-blue-500/40 bg-gradient-to-br from-blue-500 to-purple-500
+                 {% else %}
+                   bg-gradient-to-br from-pink-400 to-purple-400
+                 {% endif %}">
+      <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white">
+        <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
+                     bg-gradient-to-br from-pink-400 to-purple-400 text-white font-bold text-sm md:text-base">
+          {{ w.name|cut:" "|slice:":2"|upper }}
+        </span>
+      </span>
+    </span>
+    <span class="text-[13px] text-gray-600 truncate max-w-20 md:max-w-28">{{ w.city|default:w.name }}</span>
+  </a>
+{% endfor %}
+
+    </div>
+  </section>
+<!-- Filters -->
+<section class="mt-4 grid grid-cols-2 gap-3 md:gap-6">
+  <!-- Category -->
+  <form method="get" class="w-full">
+    {% if request.GET.wholesaler %}
+      <input type="hidden" name="wholesaler" value="{{ request.GET.wholesaler }}">
+    {% endif %}
+    {% if request.GET.sort %}
+      <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+    {% endif %}
+    <select name="category"
+            class="w-full h-12 rounded-xl border border-gray-200 px-3 text-gray-700 bg-white"
+            onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for c in categories %}
+        <option value="{{ c.id }}"
+                {% if request.GET.category|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+          {{ c.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <!-- Sort -->
+  <form method="get" class="w-full">
+    {% if request.GET.wholesaler %}
+      <input type="hidden" name="wholesaler" value="{{ request.GET.wholesaler }}">
+    {% endif %}
+    {% if request.GET.category %}
+      <input type="hidden" name="category" value="{{ request.GET.category }}">
+    {% endif %}
+    <select name="sort"
+            class="w-full h-12 rounded-xl border border-gray-200 px-3 text-gray-700 bg-white"
+            onchange="this.form.submit()">
+      <option value="newest" {% if request.GET.sort == "newest" %}selected{% endif %}>Newest First</option>
+      <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price High → Low</option>
+      <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price Low → High</option>
+    </select>
+  </form>
+</section>
+
+
+<!-- Products grid -->
+<section class="mt-6 grid gap-4 grid-cols-2 md:gap-6 md:grid-cols-3 xl:grid-cols-4">
+  {% for p in products %}
+    <a href="{% url 'catalog:product_detail' p.id %}" class="group block">
+      <!-- image: portrait 3:4, no border, no rounded -->
+      <div class="aspect-[3/4] w-full overflow-hidden bg-gray-200">
+  {% if p.image %}
+    <img src="{{ p.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+  {% elif p.images.first %}
+    <img src="{{ p.images.first.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+  {% endif %}
+</div>
+
+
+      <!-- text -->
+      <h3 class="mt-2 font-semibold text-gray-900">{{ p.name }}</h3>
+      <p class="mt-1 text-sm text-gray-600 oc-line-2">
+        {{ p.description|default_if_none:""|truncatechars:120 }}
+      </p>
+      <div class="mt-1 text-blue-600 font-extrabold">₹{{ p.wholesale_price }}</div>
+      <!-- <div class="text-sm text-gray-500">MOQ: {{ p.minimum_order_qty|default:"6" }} pcs</div> -->
+    </a>
+  {% empty %}
+    <p class="text-gray-600">No products found.</p>
+  {% endfor %}
+</section>
+
+
+
+</div>
+{% endblock %}

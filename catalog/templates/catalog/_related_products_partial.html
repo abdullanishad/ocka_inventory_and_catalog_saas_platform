@@ -1,0 +1,16 @@
+<div class="row">
+  {% for product in related %}
+  <div class="col-md-3 mb-3">
+    <div class="card h-100">
+      <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+      <div class="card-body">
+        <h6 class="card-title">{{ product.name }}</h6>
+        <p>₹{{ product.wholesale_price }}</p>
+        <a href="{% url 'catalog:product_detail' product.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p>No related products found.</p>
+  {% endfor %}
+</div>

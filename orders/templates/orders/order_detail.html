@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white shadow p-6 rounded">
+  <h1 class="text-xl font-bold mb-4">Order #{{ order.number }}</h1>
+  <p><strong>Retailer:</strong> {{ order.retailer.name }}</p>
+  <p><strong>Wholesaler:</strong> {{ order.wholesaler.name }}</p>
+  <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+  <p><strong>Date:</strong> {{ order.date }}</p>
+
+  <h2 class="mt-6 font-semibold">Items</h2>
+  <ul class="list-disc ml-6">
+    {% for item in order.items.all %}
+      <li>{{ item.product.name }} × {{ item.quantity }} @ ₹{{ item.price }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

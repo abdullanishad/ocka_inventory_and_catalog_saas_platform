@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <header class="border-b bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        
+
+        <!-- Search -->
+        <div class="flex-1 max-w-2xl mx-8">
+          <div class="relative">
+            <input type="search" placeholder="Search products, wholesalers..."
+              class="w-full pl-10 pr-4 border rounded-lg h-10" />
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Icons -->
+        <div class="flex items-center space-x-4">
+          <button class="px-3 py-1 border rounded">Filters</button>
+          
+          <button>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+<!-- Shop by Wholesalers -->
+<section class="mb-12">
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-center text-2xl font-bold mb-6">Shop by Wholesalers</h2>
+    <div class="flex justify-center space-x-8 flex-wrap">
+      {% for wholesaler in wholesalers %}
+        <a href="{% url 'catalog:product_list' %}?wholesaler={{ wholesaler.id }}" 
+           class="text-center block group">
+          <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-blue-200">
+            <span class="text-blue-600 font-bold">
+              {{ wholesaler.name|slice:":2" }}
+            </span>
+          </div>
+          <p class="text-sm text-gray-600 group-hover:text-gray-900">
+            {{ wholesaler.name }}
+          </p>
+        </a>
+      {% empty %}
+        <p class="text-gray-500">No wholesalers available</p>
+      {% endfor %}
+
+      <!-- optional "View All" -->
+      {% if wholesalers %}
+        <a href="{% url 'catalog:wholesaler_dashboard' %}" class="text-center block group">
+          <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-gray-200">
+            <span class="text-gray-600 font-bold">+</span>
+          </div>
+          <p class="text-sm text-gray-600 group-hover:text-gray-900">View All</p>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+
+    <!-- Shop by Category -->
+    <section class="mb-12">
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-center text-2xl font-bold mb-6">Shop by Category</h2>
+        <div class="flex justify-center space-x-6">
+          {% for category in categories %}
+          <button class="border rounded-lg p-4 hover:bg-gray-50">
+            {{ category.name }}
+          </button>
+          {% empty %}
+          <p>No categories available</p>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Popular Wholesalers Nearby -->
+    <section>
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-center text-2xl font-bold mb-6">Popular Wholesalers Near You</h2>
+        <div class="grid md:grid-cols-3 gap-6">
+          {% for wholesaler in wholesalers %}
+          <div class="border rounded-lg shadow-sm p-6 text-center">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-blue-600 font-bold text-lg">{{ wholesaler.initials }}</span>
+            </div>
+            <h3 class="font-bold">{{ wholesaler.name }}</h3>
+            <p class="text-sm text-gray-500 mb-4">Within {{ wholesaler.distance }} km</p>
+            <a href="{% url 'catalog:product_list' %}?wholesaler={{ wholesaler.id }}"
+              class="px-4 py-2 border rounded bg-gray-100 hover:bg-gray-200">
+              View Catalog
+            </a>
+          </div>
+          {% empty %}
+          <p>No wholesalers nearby</p>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+<div class="row">
+  {% for product in products %}
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+      <div class="card-body">
+        <h5 class="card-title">{{ product.name }}</h5>
+        <p class="card-text">SKU: {{ product.sku }}</p>
+        <p class="card-text">Wholesale: ₹{{ product.wholesale_price }}</p>
+<a href="{% url 'orders:add_to_cart' product.id %}?next={{ request.get_full_path|urlencode }}"
+   class="mt-3 block bg-green-600 text-white text-center px-3 py-2 rounded hover:bg-green-700">
+  Add to Cart
+</a>
+
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p>No products found.</p>
+  {% endfor %}
+</div>

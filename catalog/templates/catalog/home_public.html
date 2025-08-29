@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ocka – Wholesale marketplace{% endblock %}
+
+{% block content %}
+<div class="oc-phone">
+
+  <!-- HERO -->
+  <section class="oc-hero">
+    <h1>Welcome to ocka</h1>
+    <p>Discover quality products from trusted wholesalers</p>
+    <a href="{% url 'catalog:product_list' %}" class="oc-btn">Shop Now</a>
+  </section>
+
+  <!-- TOP BRANDS (Wholesalers) -->
+  <section class="oc-section">
+    <h2 class="oc-h2">Top brands</h2>
+    <div class="oc-brand-grid">
+      {% for w in wholesalers %}
+        <a class="oc-brand-card"
+           href="{% url 'catalog:product_list' %}?wholesaler={{ w.id|default:w.pk }}">
+          <div class="oc-brand-logo">
+            {% if w.logo and w.logo.url %}
+              <img src="{{ w.logo.url }}" alt="{{ w.name|default:'Wholesaler' }}">
+            {% elif w.image and w.image.url %}
+              <img src="{{ w.image.url }}" alt="{{ w.name|default:'Wholesaler' }}">
+            {% else %}
+              <div class="oc-logo-fallback">
+                Wholesaler<br>{{ w.name|default:"A"|first|upper }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="oc-brand-name">{{ w.name|default:"wholesaler" }}</div>
+        </a>
+      {% empty %}
+        {% for _ in "1234" %}
+          <div class="oc-brand-card">
+            <div class="oc-brand-logo oc-skel"></div>
+            <div class="oc-skel-line"></div>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section class="oc-section">
+    <h2 class="oc-h2">Shop by Categories</h2>
+    <div class="oc-cat-list">
+      {% for c in categories %}
+        <a class="oc-cat-row"
+           href="{% url 'catalog:product_list' %}?category={{ c.id|default:c.pk }}">
+          <div class="oc-cat-left">
+            <div class="oc-ico">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16"
+                      fill="none" stroke="currentColor" stroke-width="1.5"
+                      stroke-linecap="round" />
+              </svg>
+            </div>
+            <span class="oc-cat-name">{{ c.name }}</span>
+          </div>
+          <svg class="oc-chev" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 6l6 6-6 6"
+                  fill="none" stroke="currentColor" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      {% empty %}
+        <div class="oc-empty">No categories yet.</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="oc-section">
+    <h2 class="oc-h2">How It Works</h2>
+    <ol class="oc-how">
+      <li>
+        <span class="oc-step">1</span>
+        <div>
+          <div class="oc-how-title">Browse Products</div>
+          <p>Explore our wide range of products from trusted wholesalers</p>
+        </div>
+      </li>
+      <li>
+        <span class="oc-step">2</span>
+        <div>
+          <div class="oc-how-title">Add to Cart</div>
+          <p>Select your desired items and quantities</p>
+        </div>
+      </li>
+      <li>
+        <span class="oc-step">3</span>
+        <div>
+          <div class="oc-how-title">Secure Checkout</div>
+          <p>Checkout and your wholesaler will contact your for further process</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <footer class="oc-footer">© 2025 ocka. All rights reserved.</footer>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  <!-- important for mobile -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <title>{% block title %}My Site{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 overflow-x-hidden">
+  
+
+  <!-- ✅ Header -->
+<!-- ✅ Header -->
+<nav class="bg-white border-b relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Brand -->
+      <a href="/" class="text-2xl font-bold text-gray-900">ocka</a>
+
+      <!-- Right actions -->
+      <div class="flex items-center gap-3">
+
+        {# Show Sell button only if on home AND user is NOT logged in #}
+        {% if is_home and not user.is_authenticated %}
+          <a
+            {% if sell_href_urlname %}
+              href="{% url sell_href_urlname %}"
+            {% else %}
+              href="{% url 'accounts:signup' %}"
+            {% endif %}
+            class="px-4 py-2 rounded-xl border-2 border-gray-200 text-gray-900 font-semibold hover:bg-gray-50"
+          >
+            Sell
+          </a>
+        {% endif %}
+
+        <!-- Profile dropdown -->
+        <div class="relative" id="oc-prof">
+          <button id="oc-prof-btn"
+                  class="h-10 w-10 grid place-items-center rounded-lg hover:bg-gray-50"
+                  aria-haspopup="menu" aria-expanded="false" aria-label="Profile">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 text-gray-500" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" fill="currentColor"/>
+            </svg>
+          </button>
+
+          <!-- Menu -->
+          <div id="oc-prof-menu"
+               class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-2 hidden z-50"
+                role="menu" aria-hidden="true">
+            {% if user.is_authenticated %}
+              <div class="px-2 py-2 text-sm font-semibold text-gray-700 cursor-default">
+                {{ user.username }}
+              </div>
+              <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full text-left px-2 py-2 rounded-lg text-sm hover:bg-gray-100">
+                  Logout
+                </button>
+              </form>
+            {% else %}
+              <a href="{% url 'accounts:login' %}" class="block px-2 py-2 rounded-lg text-sm hover:bg-gray-100">Login</a>
+              <a href="{% url 'accounts:signup' %}" class="block px-2 py-2 rounded-lg text-sm hover:bg-gray-100">Sign up</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Cart (retailer only) -->
+        {% if user.is_authenticated and user.organization.org_type == "retailer" %}
+          <a href="{% url 'orders:view_cart' %}" class="relative h-10 w-10 grid place-items-center rounded-lg hover:bg-gray-50" aria-label="Cart">
+            <svg class="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 1.5M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
+            </svg>
+            {% if request.session.cart.items %}
+              <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] leading-4 rounded-full px-1">
+                {{ request.session.cart.items|length }}
+              </span>
+            {% endif %}
+          </a>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+
+  <!-- Page Content -->
+  <main>
+    {% block content %}
+{% endblock %}
+  </main>
+<script>
+  // Profile dropdown toggle + click-away/escape
+  (function () {
+    const btn = document.getElementById('oc-prof-btn');
+    const menu = document.getElementById('oc-prof-menu');
+    if (!btn || !menu) return;
+
+    const open = () => { menu.classList.remove('hidden'); btn.setAttribute('aria-expanded','true'); };
+    const close = () => { menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.contains('hidden') ? open() : close();
+    });
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) close();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  })();
+</script>
+<script>
+/* TEMP DEBUG — remove after fixing */
+(function(){
+  const vw = Math.round(document.documentElement.clientWidth);
+  const offenders = [];
+  document.querySelectorAll('body *').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const w = Math.round(r.width);
+    if (w > vw + 1) { // 1px tolerance
+      el.style.outline = '1px solid #ef4444';
+      offenders.push({ el, w, selector: el.tagName.toLowerCase() + (el.id ? '#'+el.id : '') + (el.className ? '.'+String(el.className).trim().replace(/\s+/g,'.') : '') });
+    }
+  });
+  if (offenders.length) {
+    console.warn('Overflow elements (wider than viewport):');
+    offenders.forEach(o => console.warn(o.w + 'px', o.selector, o.el));
+  }
+})();
+</script>
+
+</body>
+</html>

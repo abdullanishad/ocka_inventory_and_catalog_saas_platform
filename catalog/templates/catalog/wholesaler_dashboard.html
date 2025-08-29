@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+
+  {% include "partials/nav_tabs.html" %}
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <h1 class="text-2xl font-bold mb-6">Products</h1>
+
+    {# --- Stats cards (unchanged) --- #}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Total Products</p>
+          <p class="text-2xl font-semibold">{{ total_products }}</p>
+        </div>
+        <div class="text-3xl">📦</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Out of Stock</p>
+          <p class="text-2xl font-semibold text-red-600">{{ out_of_stock }}</p>
+        </div>
+        <div class="text-3xl">📉</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
+        <div>
+          <p class="text-sm text-gray-500">Low Stock</p>
+          <p class="text-2xl font-semibold text-yellow-600">{{ low_stock }}</p>
+        </div>
+        <div class="text-3xl">⚠️</div>
+      </div>
+    </div>
+
+    {# --- Top row: only search (removed Add Product / Bulk Update) --- #}
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+      <div></div>
+      <form method="get" class="w-full md:w-80">
+        <div class="relative">
+          <input name="q" value="{{ request.GET.q }}" type="text" placeholder="Search products..."
+                 class="w-full border rounded-lg h-10 pl-10 pr-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+      </form>
+    </div>
+
+    {# -------- Inline editable table (formset) -------- #}
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow overflow-hidden">
+      {% csrf_token %}
+      {{ product_formset.management_form }}
+
+      <table class="min-w-full border-collapse">
+        <thead class="bg-gray-100 text-left text-sm text-gray-700">
+          <tr class="border-b">
+            <th class="px-5 py-3">Image</th>
+            <th class="px-5 py-3">Name</th>
+            <th class="px-5 py-3">SKU</th>
+            <th class="px-5 py-3">Description</th>
+            <th class="px-5 py-3">Colours</th>
+            <th class="px-5 py-3">Sizes</th>
+            <th class="px-5 py-3">Fabric</th>
+            <th class="px-5 py-3">Fit Type</th>
+            <th class="px-5 py-3">Wholesale Rate</th>
+            <th class="px-5 py-3">MOQ</th>
+            <th class="px-5 py-3">Stock</th>
+            <th class="px-5 py-3">Date Modified</th>
+            <th class="px-5 py-3">Action</th>
+          </tr>
+        </thead>
+
+        <tbody class="text-sm">
+          {% for form in product_formset.forms %}
+          {{ form.id }} {# hidden PK #}
+          <tr class="border-b hover:bg-gray-50 align-top">
+            {# Image #}
+            <td class="px-5 py-3">
+              <div class="relative">
+                {% if form.instance.image %}
+                  <img src="{{ form.instance.image.url }}" alt="" class="w-16 h-16 object-cover rounded-lg border mb-2">
+                {% else %}
+                  <div class="w-16 h-16 bg-gray-100 rounded-lg border mb-2 grid place-items-center text-gray-400 text-xs">
+                    No image
+                  </div>
+                {% endif %}
+                <div class="text-xs">{{ form.image }}</div>
+                {% for e in form.image.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+              </div>
+            </td>
+
+            {# Name #}
+            <td class="px-5 py-3">
+              {{ form.name }}
+              {% for e in form.name.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+            </td>
+
+            {# SKU #}
+            <td class="px-5 py-3">
+              {{ form.sku }}
+              {% for e in form.sku.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+            </td>
+
+            {# Description #}
+            <td class="px-5 py-3">
+              {{ form.description }}
+              {% for e in form.description.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+            </td>
+
+            {# Colours (if field exists in form); otherwise show a helper input #}
+            <td class="px-5 py-3">
+              {% if form.colors %}
+                {{ form.colors }}
+              {% else %}
+                <input type="text" class="border rounded px-2 py-1 w-44"
+                       placeholder="Add colours (comma separated)" disabled>
+              {% endif %}
+            </td>
+
+            {# Sizes (summary input; full per-size editor can be a separate modal/page) #}
+            <td class="px-5 py-3">
+              {% if form.instance.pk %}
+                {# Safe: instance is saved, we can touch related rows #}
+                <div class="text-gray-600">
+                  {{ form.instance.size_stocks.count }} sizes
+                  {% with ts=form.instance.total_stock %}
+                    {% if ts %}<span class="text-xs text-gray-400">({{ ts }} pcs)</span>{% endif %}
+                  {% endwith %}
+                </div>
+                <a href="{% url 'catalog:product_edit' form.instance.pk %}" class="text-xs text-blue-600 hover:underline">
+                  edit sizes
+                </a>
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+
+
+            {# Fabric #}
+            <td class="px-5 py-3">
+              {% if form.fabric %} {{ form.fabric }} {% else %}
+                <input type="text" class="border rounded px-2 py-1 w-40" placeholder="Fabric" disabled>
+              {% endif %}
+            </td>
+
+            {# Fit Type #}
+            <!-- <td class="px-5 py-3">
+              {% if form.fit_type %} {{ form.fit_type }} {% else %}
+                <input type="text" class="border rounded px-2 py-1 w-32" placeholder="Fit type" disabled>
+              {% endif %}
+            </td> -->
+
+            {# Wholesale #}
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-1">
+                <span class="text-gray-600">₹</span>
+                {{ form.wholesale_price }}
+              </div>
+              {% for e in form.wholesale_price.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+            </td>
+
+            {# MOQ #}
+            <!-- <td au -->
+
+            {# Stock (legacy total) #}
+            <td class="px-5 py-3">
+              {{ form.current_stock }}
+              {% for e in form.current_stock.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
+            </td>
+
+            {# Date modified (if you have updated_at/modified fields) #}
+            <td class="px-5 py-3">
+              {% if form.instance.updated_at %}{{ form.instance.updated_at|date:"Y-m-d" }}
+              {% elif form.instance.modified %}{{ form.instance.modified|date:"Y-m-d" }}
+              {% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+
+            {# Action: delete checkbox #}
+            <td class="px-5 py-3">
+              {% if form.DELETE %}
+                <label class="inline-flex items-center gap-2 text-red-600 cursor-pointer">
+                  {{ form.DELETE }} <span>Remove</span>
+                </label>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+
+          {# Divider + Add new row hint (formset extra rows are rendered above) #}
+          <tr>
+            <td colspan="13" class="px-5 py-4">
+              <button type="submit" name="add_row" value="1"
+                      class="inline-flex items-center gap-2 border px-3 py-2 rounded-lg">
+                <span class="text-lg">+</span> Add New Row
+              </button>
+              <span class="ml-3 text-xs text-gray-500">New blank rows appear at the bottom.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="p-4 border-t flex justify-end">
+        <button type="submit"
+                class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Save All Products
+        </button>
+      </div>
+    </form>
+
+  </main>
+</div>
+{% endblock %}

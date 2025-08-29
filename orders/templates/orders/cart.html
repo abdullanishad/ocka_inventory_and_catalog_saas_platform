@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+
+  <h1 class="sr-only">Your Cart</h1>
+
+  {% if items %}
+    {% for item in items %}
+      <!-- Cart item card -->
+      <div class="bg-white border rounded-2xl p-3 sm:p-4 mb-4">
+        <div class="grid grid-cols-[72px,1fr,auto] gap-3 sm:gap-4 items-start">
+          <!-- Thumb -->
+          <div class="h-[72px] w-[72px] rounded-lg overflow-hidden bg-gray-100">
+            {% if item.image %}
+              <img src="{{ item.image }}" alt="" class="w-full h-full object-cover">
+            {% else %}
+              <div class="w-full h-full grid place-items-center text-xs text-gray-400">No image</div>
+            {% endif %}
+          </div>
+
+          <!-- Info -->
+          <div class="min-w-0">
+            <div class="flex items-baseline justify-between sm:justify-start sm:gap-3">
+              <h2 class="text-gray-900 font-semibold truncate">{{ item.name }}</h2>
+              <div class="sm:hidden text-gray-900 font-semibold">₹{{ item.price }}/unit</div>
+            </div>
+            {% if item.sku %}
+<div class="text-xs text-gray-500 mt-0.5">SKU: {{ item.sku|default:"(no sku)" }}</div>
+            {% endif %}
+            {% if item.moq %}
+              <div class="text-xs text-gray-500 mt-0.5">
+                {% comment %}
+                  item.moq might be "6 pcs | S,M,L | 1:2:2". If you only want the number:
+                  prefer to store moq_pcs alongside; otherwise we show the label.
+                {% endcomment %}
+                MOQ: {{ item.moq }}
+              </div>
+            {% endif %}
+            <div class="text-xs text-gray-500 mt-0.5">
+    Qty: {{ item.quantity }}
+  </div>
+          </div>
+
+          <!-- Unit price (desktop) -->
+          <div class="hidden sm:block text-right">
+            <div class="text-gray-900 font-semibold">Unit price : ₹{{ item.price }}</div>
+          </div>
+        </div>
+
+        <!-- Qty + Subtotal + Remove -->
+        <div class="mt-3 sm:mt-4 flex items-center justify-between">
+          <!-- Qty box (auto-updates) -->
+          <!-- <form class="flex items-center gap-2" method="post" action="{% url 'orders:update_cart_item' %}">
+            {% csrf_token %}
+            <input type="hidden" name="key" value="{{ item.key }}">
+            <input
+              type="number"
+              name="quantity"
+              value="{{ item.quantity }}"
+              min="0"
+              class="qty-input h-9 w-12 text-center rounded-md border border-gray-300 bg-white text-gray-900"
+              aria-label="Quantity"
+            >
+          </form> -->
+
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="text-lg sm:text-xl font-semibold text-gray-900">₹{{ item.subtotal }}</div>
+
+            <!-- Remove -->
+            <a href="{% url 'orders:remove_from_cart' item.key %}"
+               class="grid place-items-center h-10 w-10 rounded-xl bg-red-600 text-white hover:bg-red-700"
+               aria-label="Remove item">
+              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9Zm-8 0h2v9H6V9Z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+
+    <!-- Order Summary -->
+    <div class="bg-white border rounded-2xl p-4 sm:p-5">
+      <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>
+      <div class="mt-3 flex items-center justify-between">
+        <span class="text-gray-600">Total :</span>
+        <span id="cart-total" class="text-xl font-semibold text-gray-900">₹{{ total }}</span>
+      </div>
+
+      <a href="{% url 'orders:checkout' %}"
+         class="mt-4 block w-full h-12 rounded-xl bg-black text-white font-semibold grid place-items-center hover:bg-gray-900">
+        Book Order
+      </a>
+      <p class="text-xs text-gray-500 mt-2">* Shipping &amp; GST applies</p>
+    </div>
+
+  {% else %}
+    <div class="bg-white border rounded-2xl p-6 text-center text-gray-600">
+      Your cart is empty.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Auto-submit qty change + live total update (optimistic) -->
+<script>
+(function(){
+  const forms = Array.from(document.querySelectorAll('form[action$="update/"]'));
+  const totalEl = document.getElementById('cart-total');
+
+  // Debounce helper
+  const debounce = (fn, d=400) => {
+    let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); };
+  };
+
+  forms.forEach(form => {
+    const input = form.querySelector('.qty-input');
+    if (!input) return;
+
+    // Optimistic subtotal + total update
+    const row = form.closest('.bg-white.border.rounded-2xl');
+    const priceEl = row.querySelector('.text-gray-900.font-semibold'); // unit price (desktop or mobile)
+    const altPriceEl = row.querySelector('.grid .text-gray-900.font-semibold'); // mobile top-right (fallback)
+    const unitPrice = (() => {
+      const el = priceEl || altPriceEl;
+      if (!el) return 0;
+      const m = el.textContent.replace(/[^0-9.]/g,'');
+      return Number(m || '0');
+    })();
+    const subtotalEl = row.querySelector('.text-lg, .text-xl');
+
+    const post = debounce(() => {
+      const formData = new FormData(form);
+      fetch(form.action, {
+        method: 'POST',
+        headers: {'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/)||[])[1] || ''},
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.total_amount && totalEl) {
+          totalEl.textContent = '₹' + String(data.total_amount);
+        }
+      })
+      .catch(()=>{ /* silent */ });
+    }, 400);
+
+    const recalcLocal = () => {
+      const qty = Math.max(0, parseInt(input.value || '0', 10));
+      if (subtotalEl) {
+        subtotalEl.textContent = '₹' + (unitPrice * qty).toLocaleString('en-IN');
+      }
+    };
+
+    input.addEventListener('input', () => { recalcLocal(); post(); });
+    input.addEventListener('change', () => { recalcLocal(); post(); });
+  });
+})();
+</script>
+{% endblock %}
