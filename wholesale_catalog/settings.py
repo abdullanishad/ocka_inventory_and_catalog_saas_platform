@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'catalog',
     'accounts',
     'orders',
@@ -149,6 +150,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 AUTH_USER_MODEL = "accounts.User"
 
-# LOGIN_REDIRECT_URL = "accounts:dashboard"
-# LOGOUT_REDIRECT_URL = "home"
-LOGOUT_REDIRECT_URL = "accounts:login"   # or "catalog:product_list"
+# After login, if no ?next= is supplied, send user here:
+LOGIN_REDIRECT_URL = "accounts:dashboard"
+
+# After logout, redirect to login page (or product list)
+LOGOUT_REDIRECT_URL = "accounts:login"
+

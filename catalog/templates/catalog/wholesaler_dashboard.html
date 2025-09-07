@@ -2,217 +2,137 @@
 {% load static %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50 pb-20"> {# padding-bottom for nav bar #}
 
-  {% include "partials/nav_tabs.html" %}
-
+  <!-- Page Content -->
   <main class="max-w-7xl mx-auto px-6 py-8">
-    <h1 class="text-2xl font-bold mb-6">Products</h1>
+    <h1 class="text-2xl font-bold mb-6">My Products</h1>
 
-    {# --- Stats cards (unchanged) --- #}
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-500">Total Products</p>
-          <p class="text-2xl font-semibold">{{ total_products }}</p>
-        </div>
-        <div class="text-3xl">📦</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-500">Out of Stock</p>
-          <p class="text-2xl font-semibold text-red-600">{{ out_of_stock }}</p>
-        </div>
-        <div class="text-3xl">📉</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-5 flex items-center justify-between">
-        <div>
-          <p class="text-sm text-gray-500">Low Stock</p>
-          <p class="text-2xl font-semibold text-yellow-600">{{ low_stock }}</p>
-        </div>
-        <div class="text-3xl">⚠️</div>
-      </div>
+    <!-- Stats Cards (3-column grid, clickable) -->
+<div class="grid grid-cols-3 gap-4 mb-6 text-center">
+
+  <!-- Total Products -->
+  <a href="{% url 'catalog:wholesaler_dashboard' %}?filter=all"
+     class="bg-white rounded-xl shadow p-4 flex flex-col items-center hover:shadow-md transition">
+    <div class="text-2xl font-semibold">{{ total_products }}</div>
+    <div class="text-sm text-gray-500 mt-1">Products</div>
+  </a>
+
+  <!-- Out of Stock -->
+  <a href="{% url 'catalog:wholesaler_dashboard' %}?filter=out"
+     class="bg-white rounded-xl shadow p-4 flex flex-col items-center hover:shadow-md transition">
+    <div class="text-2xl font-semibold text-red-600">{{ out_of_stock }}</div>
+    <div class="text-sm text-gray-500 mt-1">Out of Stock</div>
+  </a>
+
+  <!-- Low Stock -->
+  <a href="{% url 'catalog:wholesaler_dashboard' %}?filter=low"
+     class="bg-white rounded-xl shadow p-4 flex flex-col items-center hover:shadow-md transition">
+    <div class="text-2xl font-semibold text-yellow-600">{{ low_stock }}</div>
+    <div class="text-sm text-gray-500 mt-1">Low Stock</div>
+  </a>
+
+</div>
+
+
+
+    <!-- Product Cards (2-column grid) -->
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4">
+
+      {% for product in products %}
+      <a href="{% url 'catalog:product_edit' product.pk %}"
+   class="bg-white rounded-xl shadow p-4 flex flex-col hover:shadow-md transition">
+  
+  {% if product.image %}
+    <img src="{{ product.image.url }}" alt="{{ product.name }}"
+         class="w-full h-40 object-cover rounded-lg mb-3">
+  {% else %}
+    <div class="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+      No Image
     </div>
+  {% endif %}
 
-    {# --- Top row: only search (removed Add Product / Bulk Update) --- #}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-      <div></div>
-      <form method="get" class="w-full md:w-80">
-        <div class="relative">
-          <input name="q" value="{{ request.GET.q }}" type="text" placeholder="Search products..."
-                 class="w-full border rounded-lg h-10 pl-10 pr-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-        </div>
-      </form>
+  <div class="mb-2">
+    <p class="font-semibold text-gray-800 truncate">{{ product.name }}</p>
+    <p class="text-xs text-gray-500">{{ product.sku }}</p>
+  </div>
+
+  <div class="flex justify-between items-center mt-auto">
+    <div class="flex items-center gap-1 text-gray-700">
+      <span>₹</span>
+      <span>{{ product.wholesale_price }}</span>
     </div>
-
-    {# -------- Inline editable table (formset) -------- #}
-    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl shadow overflow-hidden">
-      {% csrf_token %}
-      {{ product_formset.management_form }}
-
-      <table class="min-w-full border-collapse">
-        <thead class="bg-gray-100 text-left text-sm text-gray-700">
-          <tr class="border-b">
-            <th class="px-5 py-3">Image</th>
-            <th class="px-5 py-3">Name</th>
-            <th class="px-5 py-3">SKU</th>
-            <th class="px-5 py-3">Description</th>
-            <th class="px-5 py-3">Colours</th>
-            <th class="px-5 py-3">Sizes</th>
-            <th class="px-5 py-3">Fabric</th>
-            <th class="px-5 py-3">Fit Type</th>
-            <th class="px-5 py-3">Wholesale Rate</th>
-            <th class="px-5 py-3">MOQ</th>
-            <th class="px-5 py-3">Stock</th>
-            <th class="px-5 py-3">Date Modified</th>
-            <th class="px-5 py-3">Action</th>
-          </tr>
-        </thead>
-
-        <tbody class="text-sm">
-          {% for form in product_formset.forms %}
-          {{ form.id }} {# hidden PK #}
-          <tr class="border-b hover:bg-gray-50 align-top">
-            {# Image #}
-            <td class="px-5 py-3">
-              <div class="relative">
-                {% if form.instance.image %}
-                  <img src="{{ form.instance.image.url }}" alt="" class="w-16 h-16 object-cover rounded-lg border mb-2">
-                {% else %}
-                  <div class="w-16 h-16 bg-gray-100 rounded-lg border mb-2 grid place-items-center text-gray-400 text-xs">
-                    No image
-                  </div>
-                {% endif %}
-                <div class="text-xs">{{ form.image }}</div>
-                {% for e in form.image.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-              </div>
-            </td>
-
-            {# Name #}
-            <td class="px-5 py-3">
-              {{ form.name }}
-              {% for e in form.name.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-            </td>
-
-            {# SKU #}
-            <td class="px-5 py-3">
-              {{ form.sku }}
-              {% for e in form.sku.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-            </td>
-
-            {# Description #}
-            <td class="px-5 py-3">
-              {{ form.description }}
-              {% for e in form.description.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-            </td>
-
-            {# Colours (if field exists in form); otherwise show a helper input #}
-            <td class="px-5 py-3">
-              {% if form.colors %}
-                {{ form.colors }}
-              {% else %}
-                <input type="text" class="border rounded px-2 py-1 w-44"
-                       placeholder="Add colours (comma separated)" disabled>
-              {% endif %}
-            </td>
-
-            {# Sizes (summary input; full per-size editor can be a separate modal/page) #}
-            <td class="px-5 py-3">
-              {% if form.instance.pk %}
-                {# Safe: instance is saved, we can touch related rows #}
-                <div class="text-gray-600">
-                  {{ form.instance.size_stocks.count }} sizes
-                  {% with ts=form.instance.total_stock %}
-                    {% if ts %}<span class="text-xs text-gray-400">({{ ts }} pcs)</span>{% endif %}
-                  {% endwith %}
-                </div>
-                <a href="{% url 'catalog:product_edit' form.instance.pk %}" class="text-xs text-blue-600 hover:underline">
-                  edit sizes
-                </a>
-              {% else %}
-                <span class="text-gray-400">—</span>
-              {% endif %}
-            </td>
+    <div class="text-sm text-gray-600">
+      {{ product.total_stock }} pcs
+    </div>
+  </div>
+</a>
 
 
-            {# Fabric #}
-            <td class="px-5 py-3">
-              {% if form.fabric %} {{ form.fabric }} {% else %}
-                <input type="text" class="border rounded px-2 py-1 w-40" placeholder="Fabric" disabled>
-              {% endif %}
-            </td>
-
-            {# Fit Type #}
-            <!-- <td class="px-5 py-3">
-              {% if form.fit_type %} {{ form.fit_type }} {% else %}
-                <input type="text" class="border rounded px-2 py-1 w-32" placeholder="Fit type" disabled>
-              {% endif %}
-            </td> -->
-
-            {# Wholesale #}
-            <td class="px-5 py-3">
-              <div class="flex items-center gap-1">
-                <span class="text-gray-600">₹</span>
-                {{ form.wholesale_price }}
-              </div>
-              {% for e in form.wholesale_price.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-            </td>
-
-            {# MOQ #}
-            <!-- <td au -->
-
-            {# Stock (legacy total) #}
-            <td class="px-5 py-3">
-              {{ form.current_stock }}
-              {% for e in form.current_stock.errors %}<div class="text-red-600 text-xs">{{ e }}</div>{% endfor %}
-            </td>
-
-            {# Date modified (if you have updated_at/modified fields) #}
-            <td class="px-5 py-3">
-              {% if form.instance.updated_at %}{{ form.instance.updated_at|date:"Y-m-d" }}
-              {% elif form.instance.modified %}{{ form.instance.modified|date:"Y-m-d" }}
-              {% else %}<span class="text-gray-400">—</span>{% endif %}
-            </td>
-
-            {# Action: delete checkbox #}
-            <td class="px-5 py-3">
-              {% if form.DELETE %}
-                <label class="inline-flex items-center gap-2 text-red-600 cursor-pointer">
-                  {{ form.DELETE }} <span>Remove</span>
-                </label>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-
-          {# Divider + Add new row hint (formset extra rows are rendered above) #}
-          <tr>
-            <td colspan="13" class="px-5 py-4">
-              <button type="submit" name="add_row" value="1"
-                      class="inline-flex items-center gap-2 border px-3 py-2 rounded-lg">
-                <span class="text-lg">+</span> Add New Row
-              </button>
-              <span class="ml-3 text-xs text-gray-500">New blank rows appear at the bottom.</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="p-4 border-t flex justify-end">
-        <button type="submit"
-                class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
-          Save All Products
-        </button>
-      </div>
-    </form>
-
+      {% empty %}
+      <p class="text-gray-500">No products yet. Click + to add one.</p>
+      {% endfor %}
+    </div>
   </main>
+
+  <!-- Floating Add Product Button -->
+  <a href="{% url 'catalog:product_add' %}" 
+   class="fixed bottom-20 right-6 bg-black text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+</a>
+
+
+  <!-- Bottom Navigation -->
+  <nav class="fixed bottom-0 left-0 w-full bg-white border-t shadow-md">
+    <div class="max-w-7xl mx-auto flex justify-around items-center py-2">
+
+      <!-- Products -->
+      <a href="{% url 'catalog:wholesaler_dashboard' %}"
+         class="flex flex-col items-center text-xs 
+         {% if request.resolver_match.url_name == 'wholesaler_dashboard' and request.resolver_match.app_name == 'catalog' %}
+           text-blue-600 font-medium
+         {% else %}
+           text-gray-500 hover:text-gray-800
+         {% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6h16zM4 17h16M4 21h16"/>
+        </svg>
+        <span>Products</span>
+      </a>
+
+      <!-- Orders -->
+      <a href="{% url 'orders:list' %}"
+         class="flex flex-col items-center text-xs 
+         {% if request.resolver_match.app_name == 'orders' %}
+           text-blue-600 font-medium
+         {% else %}
+           text-gray-500 hover:text-gray-800
+         {% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M3 3h18l-1 9H4L3 3zM16 13a4 4 0 11-8 0"/>
+        </svg>
+        <span>Orders</span>
+      </a>
+
+      <!-- Reports -->
+      <a href="#"
+         class="flex flex-col items-center text-xs 
+         {% if request.resolver_match.url_name == 'product_list' %}
+           text-blue-600 font-medium
+         {% else %}
+           text-gray-500 hover:text-gray-800
+         {% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 17v-6h13M9 7h13M3 3h2v18H3z"/>
+        </svg>
+        <span>Reports</span>
+      </a>
+    </div>
+  </nav>
 </div>
 {% endblock %}

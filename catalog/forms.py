@@ -8,7 +8,6 @@ class ProductForm(forms.ModelForm):
         model = Product
         # sku is auto; don't expose it in the form
         fields = [
-            "owner",
             "name",
             "image",
             "category",
@@ -22,14 +21,19 @@ class ProductForm(forms.ModelForm):
             "description": forms.Textarea(attrs={"rows": 4}),
         }
 
-# Per-size inventory formset (multiple quantities per size)
+        
+
+from django.forms import inlineformset_factory
+from .models import Product, SizeStock
+
 SizeStockFormSet = inlineformset_factory(
     Product,
     SizeStock,
-    fields=["size", "quantity", "batch_ref"],
-    extra=1,
-    can_delete=True,
+    fields=["size", "quantity"],
+    extra=0,         # ❌ no blank rows
+    can_delete=False # ❌ no delete checkbox if you don’t want wholesalers to remove sizes
 )
+
 
 # Optional gallery images formset
 ProductImageFormSet = inlineformset_factory(
@@ -39,3 +43,4 @@ ProductImageFormSet = inlineformset_factory(
     extra=1,
     can_delete=True,
 )
+

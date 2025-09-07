@@ -20,4 +20,8 @@ urlpatterns = [
 
     # Detail
     path("<int:pk>/", views.order_detail, name="detail"),
+    path("ajax-checkout/", views.ajax_checkout, name="ajax_checkout"),
+    path('update-status/<int:pk>/', views.update_status, name='update_status'),
+    path("cancel/<int:pk>/", views.cancel_order, name="cancel"),
+
 ]

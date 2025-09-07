@@ -7,13 +7,19 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <title>{% block title %}My Site{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bottom-nav-height: 64px; /* default height */
+    }
+    main {
+      padding-bottom: var(--bottom-nav-height);
+    }
+  </style>
 </head>
 <body class="bg-gray-50 overflow-x-hidden">
   
-
   <!-- ✅ Header -->
-<!-- ✅ Header -->
-<nav class="bg-white border-b relative z-50">
+  <nav class="bg-white border-b relative z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
 
@@ -24,7 +30,7 @@
       <div class="flex items-center gap-3">
 
         {# Show Sell button only if on home AND user is NOT logged in #}
-        {% if is_home and not user.is_authenticated %}
+        {% if not user.is_authenticated %}
           <a
             {% if sell_href_urlname %}
               href="{% url sell_href_urlname %}"
@@ -88,15 +94,27 @@
     </div>
   </div>
 </nav>
-
-
+{% if user.is_authenticated and user.role == "wholesaler" %}
+    <div id="bottom-nav-wrapper">
+      {% include "partials/nav_tabs.html" %}
+    </div>
+  {% endif %}
 
   <!-- Page Content -->
-  <main>
+  <main class="pb-24">
     {% block content %}
 {% endblock %}
   </main>
 <script>
+  // ✅ Auto-detect bottom navbar height and update padding dynamically
+    document.addEventListener("DOMContentLoaded", function () {
+      const nav = document.querySelector("#bottom-nav-wrapper nav");
+      if (nav) {
+        const height = nav.offsetHeight;
+        document.documentElement.style.setProperty("--bottom-nav-height", height + "px");
+      }
+    });
+
   // Profile dropdown toggle + click-away/escape
   (function () {
     const btn = document.getElementById('oc-prof-btn');

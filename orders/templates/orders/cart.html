@@ -6,101 +6,118 @@
   <h1 class="sr-only">Your Cart</h1>
 
   {% if items %}
-    {% for item in items %}
-      <!-- Cart item card -->
-      <div class="bg-white border rounded-2xl p-3 sm:p-4 mb-4">
-        <div class="grid grid-cols-[72px,1fr,auto] gap-3 sm:gap-4 items-start">
-          <!-- Thumb -->
-          <div class="h-[72px] w-[72px] rounded-lg overflow-hidden bg-gray-100">
-            {% if item.image %}
-              <img src="{{ item.image }}" alt="" class="w-full h-full object-cover">
-            {% else %}
-              <div class="w-full h-full grid place-items-center text-xs text-gray-400">No image</div>
-            {% endif %}
-          </div>
 
-          <!-- Info -->
-          <div class="min-w-0">
-            <div class="flex items-baseline justify-between sm:justify-start sm:gap-3">
-              <h2 class="text-gray-900 font-semibold truncate">{{ item.name }}</h2>
-              <div class="sm:hidden text-gray-900 font-semibold">₹{{ item.price }}/unit</div>
+    <!-- Wrap items so JS can clear them after successful booking -->
+    <div id="cart-items-wrapper">
+      {% for item in items %}
+        <!-- Cart item card -->
+        <div class="bg-white border rounded-2xl p-3 sm:p-4 mb-4 cart-item-card" data-key="{{ item.key }}">
+          <div class="grid grid-cols-[72px,1fr,auto] gap-3 sm:gap-4 items-start">
+            <!-- Thumb -->
+            <div class="h-[72px] w-[72px] rounded-lg overflow-hidden bg-gray-100">
+              {% if item.image %}
+                <img src="{{ item.image }}" alt="" class="w-full h-full object-cover">
+              {% else %}
+                <div class="w-full h-full grid place-items-center text-xs text-gray-400">No image</div>
+              {% endif %}
             </div>
-            {% if item.sku %}
-<div class="text-xs text-gray-500 mt-0.5">SKU: {{ item.sku|default:"(no sku)" }}</div>
-            {% endif %}
-            {% if item.moq %}
-              <div class="text-xs text-gray-500 mt-0.5">
-                {% comment %}
-                  item.moq might be "6 pcs | S,M,L | 1:2:2". If you only want the number:
-                  prefer to store moq_pcs alongside; otherwise we show the label.
-                {% endcomment %}
-                MOQ: {{ item.moq }}
+
+            <!-- Info -->
+            <div class="min-w-0">
+              <div class="flex items-baseline justify-between sm:justify-start sm:gap-3">
+                <h2 class="text-gray-900 font-semibold truncate">{{ item.name }}</h2>
+                <div class="sm:hidden text-gray-900 font-semibold">₹{{ item.price }}/unit</div>
               </div>
-            {% endif %}
-            <div class="text-xs text-gray-500 mt-0.5">
-    Qty: {{ item.quantity }}
-  </div>
+              {% if item.sku %}
+                <div class="text-xs text-gray-500 mt-0.5">SKU: {{ item.sku|default:"(no sku)" }}</div>
+              {% endif %}
+              {% if item.moq %}
+                <div class="text-xs text-gray-500 mt-0.5">MOQ: {{ item.moq }}</div>
+              {% endif %}
+              <div class="text-xs text-gray-500 mt-0.5">Qty: {{ item.quantity }}</div>
+            </div>
+
+            <!-- Unit price (desktop) -->
+            <div class="hidden sm:block text-right">
+              <div class="text-gray-900 font-semibold">Unit price : ₹{{ item.price }}</div>
+            </div>
           </div>
 
-          <!-- Unit price (desktop) -->
-          <div class="hidden sm:block text-right">
-            <div class="text-gray-900 font-semibold">Unit price : ₹{{ item.price }}</div>
-          </div>
-        </div>
+          <!-- Qty + Subtotal + Remove -->
+          <div class="mt-3 sm:mt-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div class="text-lg sm:text-xl font-semibold text-gray-900">₹{{ item.subtotal }}</div>
 
-        <!-- Qty + Subtotal + Remove -->
-        <div class="mt-3 sm:mt-4 flex items-center justify-between">
-          <!-- Qty box (auto-updates) -->
-          <!-- <form class="flex items-center gap-2" method="post" action="{% url 'orders:update_cart_item' %}">
-            {% csrf_token %}
-            <input type="hidden" name="key" value="{{ item.key }}">
-            <input
-              type="number"
-              name="quantity"
-              value="{{ item.quantity }}"
-              min="0"
-              class="qty-input h-9 w-12 text-center rounded-md border border-gray-300 bg-white text-gray-900"
-              aria-label="Quantity"
-            >
-          </form> -->
-
-          <div class="flex items-center gap-2 sm:gap-3">
-            <div class="text-lg sm:text-xl font-semibold text-gray-900">₹{{ item.subtotal }}</div>
-
-            <!-- Remove -->
-            <a href="{% url 'orders:remove_from_cart' item.key %}"
-               class="grid place-items-center h-10 w-10 rounded-xl bg-red-600 text-white hover:bg-red-700"
-               aria-label="Remove item">
-              <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
-                <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9Zm-8 0h2v9H6V9Z"/>
-              </svg>
-            </a>
+              <!-- Remove -->
+              <a href="{% url 'orders:remove_from_cart' item.key %}"
+                 class="grid place-items-center h-10 w-10 rounded-xl bg-red-600 text-white hover:bg-red-700"
+                 aria-label="Remove item">
+                <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1Zm1 6h2v9h-2V9Zm4 0h2v9h-2V9Zm-8 0h2v9H6V9Z"/>
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-    {% endfor %}
+      {% endfor %}
+    </div>
 
     <!-- Order Summary -->
-    <div class="bg-white border rounded-2xl p-4 sm:p-5">
+    <div id="order-summary" class="bg-white border rounded-2xl p-4 sm:p-5">
       <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>
       <div class="mt-3 flex items-center justify-between">
         <span class="text-gray-600">Total :</span>
         <span id="cart-total" class="text-xl font-semibold text-gray-900">₹{{ total }}</span>
       </div>
 
-      <a href="{% url 'orders:checkout' %}"
-         class="mt-4 block w-full h-12 rounded-xl bg-black text-white font-semibold grid place-items-center hover:bg-gray-900">
+      <!-- Book Order button — now sends AJAX POST and shows modal -->
+      <button id="book-order-btn"
+              data-url="{% url 'orders:ajax_checkout' %}"
+              class="mt-4 block w-full h-12 rounded-xl bg-black text-white font-semibold grid place-items-center hover:bg-gray-900">
         Book Order
-      </a>
+      </button>
       <p class="text-xs text-gray-500 mt-2">* Shipping &amp; GST applies</p>
     </div>
 
   {% else %}
-    <div class="bg-white border rounded-2xl p-6 text-center text-gray-600">
+    <div id="empty-cart-message" class="bg-white border rounded-2xl p-6 text-center text-gray-600">
       Your cart is empty.
     </div>
   {% endif %}
 </div>
+
+<!-- Multi-order Success Modal -->
+<div id="order-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg mx-4 text-left">
+    <div class="flex items-center gap-4 mb-4">
+      <div class="flex items-center justify-center p-3 rounded-full bg-green-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold">Order(s) placed</h2>
+        <p class="text-sm text-gray-600">Your orders have been created successfully.</p>
+      </div>
+    </div>
+
+    <div id="order-list-container" class="space-y-3 mb-4">
+      <!-- JS will inject a list of created orders here -->
+      <!-- Example injected item:
+        <div class="flex justify-between items-center">
+          <div>Order <span class="font-mono">ORD-XXXX</span></div>
+          <a href="/orders/1/" class="text-sm text-blue-600">View</a>
+        </div>
+      -->
+    </div>
+
+    <div class="flex justify-end gap-3">
+      <button id="modal-close" class="px-4 py-2 rounded-lg border font-medium">Close</button>
+      <a id="modal-view-all" href="{% url 'orders:list' %}" class="px-4 py-2 rounded-lg bg-black text-white font-medium">View all orders</a>
+    </div>
+  </div>
+</div>
+
 
 <!-- Auto-submit qty change + live total update (optimistic) -->
 <script>
@@ -157,4 +174,120 @@
   });
 })();
 </script>
+
+<!-- Book Order AJAX + modal handling -->
+<script>
+(function () {
+  const btn = document.getElementById('book-order-btn');
+  const modal = document.getElementById('order-modal');
+  const modalClose = document.getElementById('modal-close');
+  const orderListContainer = document.getElementById('order-list-container');
+  const modalViewAll = document.getElementById('modal-view-all');
+  const wholesalerList = document.getElementById('wholesaler-orders-list'); // optional on page
+  const cartItemsWrapper = document.getElementById('cart-items-wrapper');
+  const orderSummary = document.getElementById('order-summary');
+  const cartTotal = document.getElementById('cart-total');
+  const emptyCartMsg = document.getElementById('empty-cart-message');
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+  const csrftoken = getCookie('csrftoken') || document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+
+  function openModal() {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+  function closeModal() {
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+  }
+
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  if (modalClose) modalClose.addEventListener('click', closeModal);
+
+  if (!btn) return;
+
+  btn.addEventListener('click', async function (e) {
+    e.preventDefault();
+    const url = btn.dataset.url;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ action: 'create_from_cart' }),
+        credentials: 'same-origin'
+      });
+
+      // Debugging helper when something goes wrong:
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error('checkout failed', res.status, txt);
+        alert(`Failed to place order (status ${res.status}). Check console.`);
+        return;
+      }
+
+      const data = await res.json();
+      if (!data || !data.success) {
+        alert(data?.error || 'Could not create order.');
+        return;
+      }
+
+      const orders = data.orders || [];
+      // clear previous injected list
+      if (orderListContainer) orderListContainer.innerHTML = '';
+
+      orders.forEach(o => {
+        // inject into modal list
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center';
+        row.innerHTML = `<div>Order <span class="font-mono">${o.order_number}</span> <span class="text-xs text-gray-500">₹${o.order_total}</span></div>
+                         <a href="${o.order_url}" class="text-sm text-blue-600">View</a>`;
+        orderListContainer.appendChild(row);
+
+        // insert into wholesaler orders list on the page (if provided)
+        if (o.html && wholesalerList) {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = o.html;
+          const node = wrapper.firstElementChild;
+          if (node) wholesalerList.prepend(node);
+        }
+      });
+
+      // UI: clear cart items and update summary
+      if (cartItemsWrapper) cartItemsWrapper.innerHTML = '';
+      if (cartTotal) cartTotal.textContent = '₹0';
+      if (orderSummary) {
+        const bookBtn = document.getElementById('book-order-btn');
+        if (bookBtn) bookBtn.remove();
+      }
+      if (emptyCartMsg) {
+        emptyCartMsg.style.display = 'block';
+      } else {
+        const container = document.querySelector('.max-w-3xl.mx-auto');
+        if (container) {
+          const div = document.createElement('div');
+          div.id = 'empty-cart-message';
+          div.className = 'bg-white border rounded-2xl p-6 text-center text-gray-600';
+          div.textContent = 'Your cart is empty.';
+          container.appendChild(div);
+        }
+      }
+
+      // show modal with created orders
+      openModal();
+
+    } catch (err) {
+      console.error('Fetch error:', err);
+      alert('Unexpected error while creating order. See console.');
+    }
+  });
+})();
+</script>
+
 {% endblock %}

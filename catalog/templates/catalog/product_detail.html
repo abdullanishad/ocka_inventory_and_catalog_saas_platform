@@ -83,17 +83,20 @@
 
   <div class="border-t mt-4 mb-3"></div>
 
-  <!-- ========== Available Sizes ========== -->
-  <div class="mb-4">
-    <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Sizes</h3>
-    <div class="flex gap-2 flex-wrap">
-      {% for size, qty in product.size_stock_totals.items %}
-        <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white">{{ size }}</span>
-      {% empty %}
-        <span class="text-sm text-gray-400">No sizes listed</span>
-      {% endfor %}
-    </div>
+ <!-- ========== Available Sizes ========== -->
+<div class="mb-4">
+  <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Sizes</h3>
+  <div class="flex gap-2 flex-wrap">
+    {% for size, qty in product.size_stock_display.items %}
+      <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white">
+        {{ size }}
+      </span>
+    {% empty %}
+      <span class="text-sm text-gray-400">No sizes listed</span>
+    {% endfor %}
   </div>
+</div>
+
 
   <div class="border-t mt-4 mb-3"></div>
 
@@ -116,8 +119,8 @@
               <span class="font-semibold">{{ opt.1 }} pcs</span>
               <span class="opacity-60">|</span>
               <span class="truncate">
-                {% for s, _ in product.size_stock_totals.items %}
-                  {{ s }}{% if not forloop.last %}, {% endif %}
+                {% for size_name, _ in product.size_stock_totals.items %}
+                  {{ size_name }}{% if not forloop.last %}, {% endif %}
                 {% empty %}-{% endfor %}
               </span>
               <span class="opacity-60">|</span>

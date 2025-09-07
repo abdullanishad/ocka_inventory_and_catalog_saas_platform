@@ -8,6 +8,8 @@ from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 
 from accounts.models import Organization
+from django.db.models import Max
+
 
 
 # ---------- Reference tables ----------
@@ -31,26 +33,29 @@ class Category(models.Model):
 class Size(models.Model):
     """Master size list (XS,S,M,28,30,Free, etc.)."""
     name = models.CharField(max_length=20, unique=True)
-    order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["order", "name"]
+        ordering = ["name"]  # just alphabetical as fallback
 
-    def __str__(self): return self.name
+    def __str__(self):
+        return self.name
 
 
 class CategorySize(models.Model):
     """Map which sizes belong to a category, and in what order."""
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="category_sizes")
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name="category_sizes"
+    )
     size = models.ForeignKey(Size, on_delete=models.PROTECT)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = [("category", "size")]
-        ordering = ["order", "size__order", "size__name"]
+        ordering = ["order", "size__name"]
 
     def __str__(self):
         return f"{self.category.name} – {self.size.name}"
+
 
 
 class Fabric(models.Model):
@@ -93,38 +98,105 @@ class Product(models.Model):
         return first.image.url if first else ""
 
     # ---- SKU generation ----
+
+
     def save(self, *args, **kwargs):
         if not self.sku:
             owner_code = slugify(self.owner.name)[:3].upper() if hasattr(self.owner, "name") else "OWN"
             cat_code = (self.category.code or slugify(self.category.name)[:4].upper()) if self.category_id else "CAT"
-            seq = Product.objects.filter(owner=self.owner, category=self.category).count() + 1
+
+            # find the last sequence used for this owner + category
+            last_sku = (
+                Product.objects
+                .filter(owner=self.owner, category=self.category, sku__startswith=f"{owner_code}-{cat_code}-")
+                .aggregate(Max("sku"))
+            )["sku__max"]
+
+            if last_sku:
+                try:
+                    seq = int(last_sku.split("-")[-1]) + 1
+                except ValueError:
+                    seq = 1
+            else:
+                seq = 1
+
             self.sku = f"{owner_code}-{cat_code}-{seq:04d}"
+
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
 
-    # ----- Computed inventory helpers -----
+    # @property
+    # def size_stock_totals(self) -> Dict[int, Tuple[str, int]]:
+    #     """
+    #     Returns {1: ('S', 3), 2: ('M', 5)} where key = Size.id
+    #     """
+    #     if not self.pk:
+    #         return {}
+
+    #     out: Dict[int, int] = {}
+    #     for row in self.size_stocks.select_related("size"):
+    #         out[row.size.id] = out.get(row.size.id, 0) + row.quantity
+
+    #     # keep order from CategorySize if available
+    #     ordered = {}
+    #     mapping = CategorySize.objects.filter(category=self.category).select_related("size") if self.category_id else []
+    #     if mapping:
+    #         for m in mapping:
+    #             ordered[m.size.id] = (m.size.name, out.get(m.size.id, 0))
+    #     # include ad-hoc sizes
+    #     for sid, qty in out.items():
+    #         if sid not in ordered:
+    #             size = Size.objects.get(id=sid)
+    #             ordered[sid] = (size.name, qty)
+
+    #     return ordered
+
     @property
-    def size_stock_totals(self) -> Dict[str, int]:
+    def size_stock_totals(self) -> Dict[int, int]:
         """
-        Returns {'S': 3, 'M': 4, ...} aggregating all batches per size.
+        Returns {1: 5, 2: 10} mapping size_id → quantity.
         """
-        out: Dict[str, int] = {}
+        if not self.pk:
+            return {}
+
+        out: Dict[int, int] = {}
         for row in self.size_stocks.select_related("size"):
             out[row.size.name] = out.get(row.size.name, 0) + row.quantity
-        # Order by CategorySize mapping if available
-        ordered = {}
-        mapping = list(CategorySize.objects.filter(category=self.category).select_related("size"))
-        if mapping:
-            for m in mapping:
-                if m.size.name in out:
-                    ordered[m.size.name] = out[m.size.name]
-        # include any ad-hoc sizes not mapped
-        for k, v in out.items():
-            if k not in ordered:
-                ordered[k] = v
-        return ordered
+
+        return out
+    
+    @property
+    def size_stock_display(self):
+        """
+        Returns { "S": 5, "M": 10, "L": 2 }
+        """
+        if not self.pk:
+            return {}
+
+        out = {}
+        for row in self.size_stocks.select_related("size"):
+            out[row.size.name] = out.get(row.size.name, 0) + row.quantity
+
+        # Add missing category sizes with 0
+        mapping = CategorySize.objects.filter(category=self.category).select_related("size") if self.category_id else []
+        for m in mapping:
+            if m.size.name not in out:
+                out[m.size.name] = 0
+
+        return out
+
+
+
+
+    @property
+    def total_stock(self) -> int:
+        return sum(self.size_stock_totals.values()) if self.pk else 0
+
+
+
 
     def available_ratios_and_moq(self) -> List[Tuple[str, int]]:
         """
@@ -179,6 +251,31 @@ class Product(models.Model):
                 valid.append((ratio, moq))
         valid.sort(key=lambda x: x[1])
         return valid
+    
+    def initial_size_stocks(self) -> List[Dict[str, int]]:
+        """
+        Returns a list of dicts suitable for prefilling a formset:
+        [{'size': <Size>, 'quantity': 5}, ...]
+        It ensures all sizes from the product's category are included,
+        even if not yet present in DB.
+        """
+        rows = []
+        existing = {s.size_id: s for s in self.size_stocks.all()}
+        mapping = CategorySize.objects.filter(category=self.category).select_related("size") if self.category_id else []
+
+        for m in mapping:
+            if m.size_id in existing:
+                rows.append({"size": m.size, "quantity": existing[m.size_id].quantity})
+            else:
+                rows.append({"size": m.size, "quantity": 0})
+
+        # Also include any extra/ad-hoc size rows not mapped in CategorySize
+        for s in existing.values():
+            if not mapping.filter(size_id=s.size_id).exists():
+                rows.append({"size": s.size, "quantity": s.quantity})
+
+        return rows
+
 
 
 class ProductImage(models.Model):

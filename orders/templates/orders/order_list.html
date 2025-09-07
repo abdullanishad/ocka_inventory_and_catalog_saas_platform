@@ -5,10 +5,10 @@
 {% block title %}Orders{% endblock %}
 
 {% block content %}
+<div class="min-h-screen bg-gray-50 pb-20"> {# padding-bottom for nav bar #}
 
-<div class="min-h-screen bg-gray-50">
-    {% include "partials/nav_tabs.html" %}
-
+  <!-- Page Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
   <!-- Page header -->
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
@@ -85,90 +85,136 @@
     </div>
   </form>
 
-  <!-- Table -->
-  <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
-          <tr>
-            <th class="text-left px-6 py-3">Order & Date</th>
-            <th class="text-left px-6 py-3">Retailer & Location</th>
-            <th class="text-left px-6 py-3">Items & Value</th>
-            <th class="text-left px-6 py-3">Payment Status</th>
-            <th class="text-left px-6 py-3">Status</th>
-            <th class="text-left px-6 py-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for o in orders %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4">
-                <div class="font-medium">#{{ o.number }}</div>
-                <div class="text-gray-500 text-xs">{{ o.date|date:"M j" }}</div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="font-medium">{{ o.retailer.name }}</div>
-                <div class="text-gray-500 text-xs">
-                  {% if o.retailer.city %}{{ o.retailer.city }}{% endif %}
-                  {% if o.retailer.state %} ({{ o.retailer.state }}){% endif %}
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="font-medium">{{ o.items_count }} items</div>
-                <div class="text-gray-500 text-xs">₹{{ o.total_value|floatformat:0 }}</div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="font-medium">
-                  {{ o.get_payment_method_display }}
-                </div>
-                <div class="text-gray-500 text-xs">{{ o.payment_status }}</div>
-              </td>
-              <td class="px-6 py-4">{% status_badge o.status %}</td>  <!-- ✅ correct -->
+<!-- Order List -->
+<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+  <div class="divide-y">
 
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <a href="{% url 'orders:list' %}?q={{ o.number }}" class="p-2 rounded-md border border-gray-300 hover:bg-gray-100" title="View">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12 18 19.5 12 19.5 1.5 12 1.5 12z"/>
-                      <circle cx="12" cy="12" r="3" stroke-width="2"></circle>
-                    </svg>
-                  </a>
-                  <button class="p-2 rounded-md border border-gray-300 hover:bg-gray-100" title="Print"
-                          onclick="window.print()">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M6 9V4h12v5M6 18H5a2 2 0 01-2-2v-3a2 2 0 012-2h14a2 2 0 012 2v3a2 2 0 01-2 2h-1M6 14h12v6H6z"/>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="6" class="px-6 py-10 text-center text-gray-500">No orders found.</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- table header -->
+    <div class="grid grid-cols-4 gap-4 items-center bg-gray-50 text-xs font-medium text-gray-500 px-4 py-2">
+      <div>Order</div>
+      <div>
+        {% comment %} Show opposite party name: if this user is a wholesaler, show Retailer; else show Wholesaler {% endcomment %}
+        {% if is_wholesaler %}Retailer{% else %}Wholesaler{% endif %}
+      </div>
+      <div>Order Status</div>
+      <div class="text-right">Items / Value</div>
     </div>
 
-    <!-- Pagination -->
-    {% if is_paginated %}
-      <div class="flex items-center justify-between p-4 border-t border-gray-100">
-        <div class="text-xs text-gray-500">
-          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
-        </div>
-        <div class="flex gap-2">
-          {% if page_obj.has_previous %}
-            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Prev</a>
-          {% endif %}
-          {% if page_obj.has_next %}
-            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
-          {% endif %}
-        </div>
-      </div>
+    {% if orders %}
+      <ul class="divide-y">
+        {% for o in orders %}
+          <li class="flex items-center justify-between hover:bg-gray-50">
+            <!-- main clickable area -->
+            <a href="{% url 'orders:detail' o.pk %}"
+               class="flex-1 block p-4 text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300">
+              <div class="grid grid-cols-4 gap-4 items-center">
+                <!-- Order col -->
+                <div>
+                  <div class="font-medium text-gray-900">#{{ o.number }}</div>
+                  <div class="text-gray-500 text-xs">{{ o.date|date:"M j" }}</div>
+                </div>
+
+                <!-- Opposite party (Retailer or Wholesaler) -->
+                <div>
+                  {% if is_wholesaler %}
+                    <div class="font-medium text-gray-900">{{ o.retailer.name }}</div>
+                    <div class="text-gray-500 text-xs">
+                      {% if o.retailer.city %}{{ o.retailer.city }}{% endif %}
+                      {% if o.retailer.state %} ({{ o.retailer.state }}){% endif %}
+                    </div>
+                  {% else %}
+                    {# show wholesaler info; assumes order has o.wholesaler relation #}
+                    <div class="font-medium text-gray-900">{{ o.wholesaler.name }}</div>
+                    <div class="text-gray-500 text-xs">
+                      {% if o.wholesaler.city %}{{ o.wholesaler.city }}{% endif %}
+                      {% if o.wholesaler.state %} ({{ o.wholesaler.state }}){% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- Status column -->
+                <div>
+                  {# status badge: o.status expected values: Pending, Confirmed, Shipped, Delivered, Cancelled #}
+                  {% with s=o.status %}
+                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
+                                 {% if s == 'Pending' %}bg-yellow-100 text-yellow-800
+                                 {% elif s == 'Confirmed' %}bg-blue-100 text-blue-800
+                                 {% elif s == 'Shipped' %}bg-indigo-100 text-indigo-800
+                                 {% elif s == 'Delivered' %}bg-green-100 text-green-800
+                                 {% elif s == 'Cancelled' %}bg-red-100 text-red-800
+                                 {% else %}bg-gray-100 text-gray-800{% endif %}">
+                      {{ s }}
+                    </span>
+                    {% if o.status_note %}
+                      <div class="text-gray-400 text-xs mt-1">{{ o.status_note }}</div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+
+                <!-- Items & value -->
+                <!-- Items & value -->
+              <div class="text-right">
+                <div class="font-medium">
+                  {% with count=o.annot_items_count|default:o.items_count %}
+                    {{ count }} items
+                  {% endwith %}
+                </div>
+                <div class="text-gray-500 text-xs">
+                  {% with val=o.annot_total_value|default:o.total_value %}
+                    ₹{{ val|floatformat:0 }}
+                  {% endwith %}
+                </div>
+              </div>
+
+              </div>
+            </a>
+
+            
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="p-6 text-center text-gray-500">No orders found.</div>
     {% endif %}
   </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+    <div class="flex items-center justify-between p-4 border-t border-gray-100">
+      <div class="text-xs text-gray-500">
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+      </div>
+      <div class="flex gap-2">
+        {% if page_obj.has_previous %}
+          <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
 </div>
+
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+    <div class="flex items-center justify-between p-4 border-t border-gray-100">
+      <div class="text-xs text-gray-500">
+        Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+      </div>
+      <div class="flex gap-2">
+        {% if page_obj.has_previous %}
+          <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+</div>
+</main>
 {% endblock %}

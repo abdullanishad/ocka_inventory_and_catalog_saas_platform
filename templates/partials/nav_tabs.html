@@ -1,65 +1,51 @@
-  <!-- Top bar with brand + tabs -->
-  <header class="bg-white border-b">
-    <div class="max-w-7xl mx-auto px-6">
-      
+<!-- Bottom navigation bar -->
+<nav class="fixed bottom-0 left-0 w-full bg-white border-t shadow-md">
+  <div class="max-w-7xl mx-auto flex justify-around items-center py-2">
 
-<nav class="flex items-center space-x-6 text-sm border-b">
-  <!-- <a href="{% url 'accounts:wholesaler_dashboard' %}" -->
-  <a href="#"
-     class="py-4 {% if request.resolver_match.url_name == 'wholesaler_dashboard' and request.resolver_match.app_name == 'accounts' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    DASHBOARD
-  </a>
-
+    <!-- Products -->
     <a href="{% url 'catalog:wholesaler_dashboard' %}"
-     class="py-4 {% if request.resolver_match.url_name == 'wholesaler_dashboard' and request.resolver_match.app_name == 'catalog' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    PRODUCTS
-  </a>
+       class="flex flex-col items-center text-xs 
+       {% if request.resolver_match.url_name == 'wholesaler_dashboard' and request.resolver_match.app_name == 'catalog' %}
+         text-blue-600 font-medium
+       {% else %}
+         text-gray-500 hover:text-gray-800
+       {% endif %}">
+      <!-- Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M20 13V7a2 2 0 00-2-2h-3V3H9v2H6a2 2 0 00-2 2v6h16zM4 17h16M4 21h16"/>
+      </svg>
+      <span>Products</span>
+    </a>
 
+    <!-- Orders -->
+    <a href="{% url 'orders:list' %}"
+       class="flex flex-col items-center text-xs 
+       {% if request.resolver_match.app_name == 'orders' %}
+         text-blue-600 font-medium
+       {% else %}
+         text-gray-500 hover:text-gray-800
+       {% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M3 3h18l-1 9H4L3 3zM16 13a4 4 0 11-8 0"/>
+      </svg>
+      <span>Orders</span>
+    </a>
 
-
-  <a href="{% url 'orders:list' %}"
-     class="py-4 {% if request.resolver_match.app_name == 'orders' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    ORDERS
-  </a>
-
+    <!-- Reports -->
     <a href="#"
-     class="py-4 {% if request.resolver_match.url_name == 'product_list' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    CATALOG
-  </a>
-
-
-
-  <a href="#"
-     class="py-4 {% if request.resolver_match.url_name == 'analytics_dashboard' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    ANALYTICS
-  </a>
-
-  <a href="#"
-     class="py-4 {% if request.resolver_match.url_name == 'settings_page' %}
-       border-b-2 border-blue-600 text-blue-700 font-medium
-     {% else %}
-       text-gray-500 hover:text-gray-900
-     {% endif %}">
-    SETTINGS
-  </a>
+       class="flex flex-col items-center text-xs 
+       {% if request.resolver_match.url_name == 'product_list' %}
+         text-blue-600 font-medium
+       {% else %}
+         text-gray-500 hover:text-gray-800
+       {% endif %}">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M9 17v-6h13M9 7h13M3 3h2v18H3z"/>
+      </svg>
+      <span>Reports</span>
+    </a>
+  </div>
 </nav>

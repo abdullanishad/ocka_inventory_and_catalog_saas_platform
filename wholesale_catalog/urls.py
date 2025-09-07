@@ -7,7 +7,7 @@ from catalog import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", views.home_ocka, name="home_public"),  # make this your landing page
+    path("", views.home, name="home"),  # make this your landing page
     path("catalog/", include("catalog.urls")),
     path("accounts/", include("accounts.urls", namespace="accounts")),
     path("orders/", include("orders.urls", namespace="orders")),

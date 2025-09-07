@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load static custom_tags %}
+
+{% block content %}
+<form id="product-form" method="post" enctype="multipart/form-data" class="space-y-6">
+  {% csrf_token %}
+  <div class="max-w-2xl mx-auto p-4 space-y-6">
+
+   <!-- Upload + Preview Section -->
+<div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-6">
+  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 4v16m8-8H4"/>
+  </svg>
+  <p class="mt-2 text-sm text-gray-600">Add Photos</p>
+  <p class="text-xs text-gray-400">Upload up to 10 photos of your product</p>
+
+  <label class="inline-block mt-3 cursor-pointer px-4 py-2 bg-black text-white rounded-lg">
+    + Select Photos
+    <input type="file" id="photo-upload" name="new_images" accept="image/*" multiple class="hidden">
+  </label>
+
+  <!-- ✅ Preview new uploads -->
+  <div id="uploaded-slots" class="grid grid-cols-3 gap-4 mt-4"></div>
+</div>
+
+
+<!-- ✅ Show existing DB images only when editing -->
+{% if product.pk %}
+  <h3 class="text-xs text-gray-500 mt-4">Existing Photos</h3>
+  <div id="existing-photos" class="grid grid-cols-3 gap-4 mt-2">
+
+    {# Cover shown once, no delete button #}
+    {% if product.image %}
+      <div class="relative border rounded-lg overflow-hidden h-32">
+        <img src="{{ product.image.url }}" class="object-cover w-full h-full">
+        <span class="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">Cover</span>
+      </div>
+    {% endif %}
+
+    {# Other images: radio + DELETE ❌ #}
+    {% for img in product.images.all %}
+      {% if not product.image or img.image.url != product.image.url %}
+        <div class="relative border rounded-lg overflow-hidden h-32" data-image-card>
+          <img src="{{ img.image.url }}" class="object-cover w-full h-full">
+
+          <!-- ❌ delete button -->
+          <button type="button"
+                  class="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full w-7 h-7 grid place-items-center shadow delete-img-btn"
+                  aria-label="Remove photo"
+                  data-url="{% url 'catalog:product_image_delete' img.id %}">
+            ✕
+          </button>
+
+          <label class="absolute bottom-1 left-1 flex items-center gap-1 bg-white px-2 py-0.5 rounded text-xs cursor-pointer">
+            <input type="radio" name="cover_choice" value="{{ img.id }}">
+            Cover
+          </label>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+
+
+
+    <!-- Basic Info -->
+    <div class="bg-white shadow rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-medium text-gray-700">Basic Information</h2>
+      <div>
+        <label class="block text-xs text-gray-500">Product Name</label>
+        {{ form.name }}
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">SKU (Auto-generated)</label>
+        <input type="text" value="{{ form.instance.sku|default:'Auto-generated' }}" 
+               class="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-600 text-sm" readonly>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">Category</label>
+        {{ form.category }}
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="bg-white shadow rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-medium text-gray-700">Pricing</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-gray-500">Wholesale Price</label>
+          {{ form.wholesale_price }}
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Retail Price</label>
+          {{ form.retail_price }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="bg-white shadow rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-medium text-gray-700">Additional Information</h2>
+      <div>
+        <label class="block text-xs text-gray-500">Description</label>
+        {{ form.description }}
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">Fabric</label>
+        {{ form.fabric }}
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">Colors</label>
+        {{ form.colors }}
+        <p class="text-xs text-gray-500">Select one or multiple colors.</p>
+      </div>
+    </div>
+
+    <!-- Stock by Size -->
+    <div class="bg-white shadow rounded-xl p-4">
+      <h2 class="text-sm font-medium text-gray-700 mb-3">Stock by Size</h2>
+      <div id="size-stock-container" class="space-y-2">
+        {% for sid, qty in product.size_stock_totals.items %}
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-700">{{ sid }} </span>
+            <input type="number" name="size_{{ sid }}" value="{{ qty }}" min="0"
+                   class="w-20 border rounded-lg px-2 py-1 text-sm">
+          </div>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-gray-500 mt-2">Total Stock: {{ product.total_stock|default:0 }} units</p>
+    </div>
+
+    <!-- Save Button -->
+    <div class="sticky bottom-0 bg-gray-50 p-4 border-t flex justify-end">
+      <button type="submit" form="product-form" class="bg-black text-white px-5 py-2 rounded-lg w-full">
+        {% if mode == "add" %} Add Product {% else %} Save Changes {% endif %}
+      </button>
+    </div>
+  </div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // --- Live image preview ---
+  const fileInput = document.getElementById("photo-upload");
+  const slotsContainer = document.getElementById("uploaded-slots");
+
+  if (fileInput && slotsContainer) {
+    fileInput.addEventListener("change", function (event) {
+      slotsContainer.innerHTML = ""; // clear old previews
+
+      Array.from(event.target.files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const slot = document.createElement("div");
+          slot.className = "relative border rounded-lg overflow-hidden h-32";
+          slot.innerHTML = `
+            <img src="${e.target.result}" class="object-cover w-full h-full">
+            <label class="absolute bottom-1 left-1 flex items-center gap-1 bg-white px-2 py-0.5 rounded text-xs cursor-pointer">
+              <input type="radio" name="cover_choice" value="new_${index}" ${index === 0 ? "checked" : ""}>
+              Cover
+            </label>
+          `;
+          slotsContainer.appendChild(slot);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  }
+
+  // --- Reload sizes when category changes OR when editing ---
+  const categorySelect = document.getElementById("id_category");
+  const sizeStockContainer = document.getElementById("size-stock-container");
+
+  // pre-filled stock quantities from backend (as JSON)
+  const sizeStockTotals = {{ product.size_stock_totals|default_if_none:"{}"|safe }};
+
+  function loadSizes(categoryId) {
+    if (!categoryId) return;
+    fetch(`/catalog/category/${categoryId}/sizes/`)
+      .then(res => res.json())
+      .then(data => {
+        sizeStockContainer.innerHTML = "";
+        data.forEach(size => {
+          const existingQty = sizeStockTotals[size.id] || 0;
+          const row = document.createElement("div");
+          row.className = "flex justify-between items-center";
+          row.innerHTML = `
+            <span class="text-sm text-gray-700">${size.name}</span>
+            <input type="number" name="size_${size.id}" value="${existingQty}" min="0"
+                   class="w-20 border rounded-lg px-2 py-1 text-sm">
+          `;
+          sizeStockContainer.appendChild(row);
+        });
+      });
+  }
+
+  if (categorySelect) {
+    // load sizes on category change
+    categorySelect.addEventListener("change", function () {
+      loadSizes(this.value);
+    });
+
+    // load sizes immediately if editing (preselected category exists)
+    if (categorySelect.value) {
+      loadSizes(categorySelect.value);
+    }
+  }
+});
+</script>
+
+<script>
+// CSRF helper (reads cookie set by Django)
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+const csrftoken = getCookie('csrftoken');
+
+// Delegate clicks from the grid container
+document.addEventListener('DOMContentLoaded', function () {
+  const grid = document.getElementById('existing-photos');
+  if (!grid) return;
+
+  grid.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.delete-img-btn');
+    if (!btn) return;
+
+    const url = btn.dataset.url;
+    const card = btn.closest('[data-image-card]');
+    if (!url || !card) return;
+
+    if (!confirm('Remove this photo?')) return;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        // remove the card from the DOM
+        card.remove();
+      } else {
+        alert(data.error || 'Failed to delete image.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting image.');
+    }
+  });
+});
+</script>
+
+
+{% endblock %}

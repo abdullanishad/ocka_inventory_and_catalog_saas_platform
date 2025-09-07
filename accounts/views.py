@@ -13,11 +13,17 @@ class CustomLoginView(LoginView):
     redirect_authenticated_user = True  # logged-in users skip login page
 
     def get_success_url(self):
+        # ✅ First, honor ?next=
+        redirect_url = self.get_redirect_url()
+        if redirect_url:
+            return redirect_url
+
+
         user = self.request.user
         if user.role == "retailer":
-            return "/accounts/retailer-dashboard/"
+            return "/catalog/"
         elif user.role == "wholesaler":
-            return "/accounts/wholesaler-dashboard/"
+            return "/catalog/dashboard/wholesaler/"
         return "/"  # fallback
 
 
@@ -25,7 +31,7 @@ def signup(request):
     # redirect if already logged in
     if request.user.is_authenticated:
         if request.user.role == "retailer":
-            return redirect("catalog:retailer_dashboard")
+            return redirect("catalog:product_list")
         elif request.user.role == "wholesaler":
             return redirect("catalog:wholesaler_dashboard")
         else:
@@ -52,7 +58,7 @@ def signup(request):
             login(request, user)
 
             if user.role == "retailer":
-                return redirect("catalog:retailer_dashboard")
+                return redirect("catalog:product_list")
             elif user.role == "wholesaler":
                 return redirect("catalog:wholesaler_dashboard")
     else:
@@ -73,8 +79,7 @@ def retailer_dashboard(request):
     })
 
 
-
-
 @login_required
 def wholesaler_dashboard(request):
     return render(request, "catalog/wholesaler_dashboard.html")
+
