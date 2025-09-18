@@ -45,11 +45,11 @@ def signup(request):
             # ✅ create or assign organization automatically
             if user.role == "wholesaler":
                 org, _ = Organization.objects.get_or_create(
-                    name=f"{user.username}'s Org", org_type="wholesaler"
+                    name=f"{user.username}", org_type="wholesaler"
                 )
             else:  # default retailer
                 org, _ = Organization.objects.get_or_create(
-                    name=f"{user.username}'s Org", org_type="retailer"
+                    name=f"{user.username}", org_type="retailer"
                 )
 
             user.organization = org

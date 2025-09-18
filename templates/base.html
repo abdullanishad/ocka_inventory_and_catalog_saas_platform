@@ -7,14 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <title>{% block title %}My Site{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --bottom-nav-height: 64px; /* default height */
-    }
-    main {
-      padding-bottom: var(--bottom-nav-height);
-    }
-  </style>
+
 </head>
 <body class="bg-gray-50 overflow-x-hidden">
   
@@ -101,8 +94,8 @@
   {% endif %}
 
   <!-- Page Content -->
-  <main class="pb-24">
-    {% block content %}
+<main class="{% if request.user.is_authenticated and request.user.organization.org_type == 'wholesaler' %}pb-14 md:pb-19{% endif %}">
+       {% block content %}
 {% endblock %}
   </main>
 <script>

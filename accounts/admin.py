@@ -21,3 +21,11 @@ class UserAdmin(BaseUserAdmin):
 admin.site.register(User, UserAdmin)
 
 
+from django.contrib import admin
+from .models import CustomerProfile, Organization, User  # adjust import path
+
+@admin.register(CustomerProfile)
+class CustomerProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "user_type", "phone", "is_verified")
+    list_filter = ("user_type", "is_verified")
+    search_fields = ("user__username", "user__email", "phone", "gstin")

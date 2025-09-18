@@ -1,0 +1,81 @@
+<!-- templates/reports/reports.html -->
+<div class="p-4">
+  <h1 class="text-2xl font-semibold mb-4">Reports ({{ start_date }} — {{ end_date }})</h1>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white p-4 rounded shadow">
+      <div class="text-sm text-gray-500">Total Sales</div>
+      <div class="text-xl font-bold">₹{{ total_sales_value|floatformat:2 }}</div>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <div class="text-sm text-gray-500">Total Orders</div>
+      <div class="text-xl font-bold">{{ total_orders }}</div>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <div class="text-sm text-gray-500">Items Sold</div>
+      <div class="text-xl font-bold">{{ total_items_sold }}</div>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <div class="text-sm text-gray-500">Avg Order Value</div>
+      <div class="text-xl font-bold">₹{{ avg_order_value|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Best sellers -->
+  <div class="mt-6">
+    <h2 class="font-semibold">Best Selling Products</h2>
+    <ul class="mt-2 divide-y">
+      {% for p in best_sellers %}
+        <li class="py-2 flex justify-between">
+          <div>
+            <div class="font-medium">{{ p.product__name }} <span class="text-xs text-gray-400">({{ p.product__sku }})</span></div>
+            <div class="text-xs text-gray-500">Qty: {{ p.qty_sold }}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-medium">₹{{ p.revenue|floatformat:2 }}</div>
+          </div>
+        </li>
+      {% empty %}
+        <li class="py-2 text-gray-500">No sales yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Orders by status -->
+  <div class="mt-6">
+    <h2 class="font-semibold">Orders by Status</h2>
+    <div class="mt-2 flex space-x-4">
+      {% for s in orders_by_status %}
+        <div class="bg-white p-3 rounded shadow">
+          <div class="text-sm text-gray-500">{{ s.status }}</div>
+          <div class="text-lg font-bold">{{ s.count }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Inventory -->
+  <div class="mt-6">
+    <h2 class="font-semibold">Inventory Snapshot</h2>
+    <div class="mt-2">
+      <div>Total stock across products: <strong>{{ total_stock }}</strong></div>
+      <div class="mt-2">
+        <h3 class="font-medium">Low stock products (<=5)</h3>
+        <ul class="mt-1">
+          {% for p in low_stock_products %}
+            <li>{{ p.name }} ({{ p.sku }}) — {{ p.total_stock }} in stock</li>
+          {% empty %}
+            <li class="text-gray-500">No low stock items.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <a href="{% url 'catalog:reports_export_csv' %}" class="inline-block px-4 py-2 bg-blue-600 text-white rounded">Export CSV</a>
+  </div>
+</div>

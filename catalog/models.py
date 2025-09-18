@@ -321,3 +321,36 @@ def can_fulfill_ratio(q_list: List[int], ratio: List[int]) -> bool:
     r = ratio[:n]
     # One pack possible if every size can give r[i] units
     return all(q[i] >= r[i] for i in range(n))
+
+
+from django.db import models
+
+class Hero(models.Model):
+    title = models.CharField(max_length=140, default="Welcome to Ocka")
+    subtitle = models.CharField(max_length=255, blank=True)
+    image = models.ImageField(upload_to="homepage/hero/")
+    cta_text = models.CharField(max_length=80, blank=True, default="Shop Now")
+    cta_url = models.CharField(max_length=255, blank=True, default="#")
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)  # smaller = higher priority
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return f"Hero: {self.title} ({'active' if self.is_active else 'inactive'})"
+
+
+class TopBrand(models.Model):
+    name = models.CharField(max_length=120)
+    logo = models.ImageField(upload_to="homepage/brands/")
+    link = models.URLField(blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.name

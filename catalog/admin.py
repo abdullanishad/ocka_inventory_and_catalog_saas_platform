@@ -29,3 +29,19 @@ admin.site.register(Size)
 admin.site.register(CategorySize)
 admin.site.register(Fabric)
 admin.site.register(Color)
+
+
+from django.contrib import admin
+from .models import Hero, TopBrand
+
+@admin.register(Hero)
+class HeroAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'order', 'created_at')
+    list_editable = ('is_active', 'order')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(TopBrand)
+class TopBrandAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'order')
+    list_editable = ('is_active', 'order')

@@ -1,5 +1,10 @@
-<!-- Bottom navigation bar -->
-<nav class="fixed bottom-0 left-0 w-full bg-white border-t shadow-md">
+{# navbar.html - REPLACE contents with this #}
+
+{# Spacer: reserves layout space equal to the nav height so content won't be covered #}
+<!-- <div aria-hidden="true" class="h-16 md:h-20"></div> -->
+
+<nav class="fixed bottom-0 left-0 w-full bg-white border-t shadow-md z-50"
+     style="padding-bottom: env(safe-area-inset-bottom);">
   <div class="max-w-7xl mx-auto flex justify-around items-center py-2">
 
     <!-- Products -->
@@ -34,18 +39,16 @@
     </a>
 
     <!-- Reports -->
-    <a href="#"
+    <a href="{% url 'catalog:reports' %}"
        class="flex flex-col items-center text-xs 
-       {% if request.resolver_match.url_name == 'product_list' %}
+       {% if request.resolver_match.url_name == 'reports' %}
          text-blue-600 font-medium
        {% else %}
          text-gray-500 hover:text-gray-800
        {% endif %}">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-              d="M9 17v-6h13M9 7h13M3 3h2v18H3z"/>
-      </svg>
+      <!-- svg -->
       <span>Reports</span>
     </a>
+
   </div>
 </nav>

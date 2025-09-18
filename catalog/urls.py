@@ -19,5 +19,7 @@ urlpatterns = [
     path("category/<int:category_id>/sizes/", views.category_sizes, name="category_sizes"),
 
     path("product-image/<int:pk>/delete/", views.product_image_delete, name="product_image_delete"),
-
+    
+    path("reports/", views.wholesale_reports, name="reports"),
+    path("reports/export/csv/", views.reports_export_csv, name="reports_export_csv"),
 ]

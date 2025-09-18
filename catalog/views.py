@@ -22,17 +22,7 @@ def require_wholesaler(user) -> bool:
     return getattr(user, "role", None) == "wholesaler" and getattr(user, "organization", None)
 
 
-# ---------------------------------------------------------------------
-# Public pages
-# ---------------------------------------------------------------------
-def home(request):
-    wholesalers = Organization.objects.filter(org_type="wholesaler")
-    categories = Category.objects.all()
 
-    return render(request, "catalog/home_public.html", {
-        "wholesalers": wholesalers,
-        "categories": categories,
-    })
 
 
 
@@ -283,3 +273,170 @@ def delete_product(request, pk):
     product = get_object_or_404(Product, pk=pk, owner=org)
     product.delete()
     return redirect("catalog:wholesaler_dashboard")
+
+
+# catalog/views.py (updated)
+from django.shortcuts import render
+from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper
+from django.db.models.functions import TruncDay
+from django.utils import timezone
+from datetime import timedelta
+
+from .models import Product
+from orders.models import Order  # you already have this
+# Note: we don't strictly need an OrderItem import because we aggregate through Order.items
+
+def wholesale_reports(request):
+    org = getattr(request.user, "organization", None)
+    if org is None:
+        return render(request, "reports/no_org.html")
+
+    today = timezone.now().date()
+    start_date = today - timedelta(days=29)
+
+    products_qs = Product.objects.filter(owner=org).select_related("category")
+
+    # Use Order.items related name (as error suggests)
+    # Total sales value for DELIVERED orders for this wholesaler's products
+    revenue_expr = ExpressionWrapper(F("items__quantity") * F("items__price"), output_field=FloatField())
+
+    total_sales_agg = Order.objects.filter(
+        items__product__owner=org,
+        status="DELIVERED"
+    ).aggregate(total_sales=Sum(revenue_expr))
+
+    total_sales_value = total_sales_agg["total_sales"] or 0.0
+
+    # total items sold
+    total_items_agg = Order.objects.filter(
+        items__product__owner=org,
+        status="DELIVERED"
+    ).aggregate(total_qty=Sum("items__quantity"))
+    total_items_sold = total_items_agg["total_qty"] or 0
+
+    # total orders (any status) containing this wholesaler's products
+    total_orders = Order.objects.filter(items__product__owner=org).distinct().count()
+
+    # Average order value — compute from total_value & count (use total_value field)
+    delivered_orders_qs = Order.objects.filter(status="DELIVERED", items__product__owner=org).distinct()
+    agg = delivered_orders_qs.aggregate(total=Sum("total_value"), count=Count("id"))
+    total_delivered_value = agg["total"] or 0
+    delivered_count = agg["count"] or 0
+    avg_order_value = (total_delivered_value / delivered_count) if delivered_count else 0
+
+    # Best sellers by qty & revenue
+    best_sellers = (
+        Order.objects.filter(items__product__owner=org)
+        .values("items__product__id", "items__product__name", "items__product__sku")
+        .annotate(qty_sold=Sum("items__quantity"),
+                  revenue=Sum(revenue_expr))
+        .order_by("-qty_sold")[:10]
+    )
+
+    # Orders by status
+    orders_by_status = (
+        Order.objects.filter(items__product__owner=org)
+        .values("status")
+        .annotate(count=Count("id"))
+        .order_by()
+    )
+
+    # Sales trend by day (last 30 days). Use Order.date field (as your model shows).
+    trend = (
+        Order.objects.filter(items__product__owner=org, date__gte=start_date)
+        .annotate(day=TruncDay("date"))
+        .values("day")
+        .annotate(day_revenue=Sum(revenue_expr))
+        .order_by("day")
+    )
+
+    # Inventory snapshot using product.total_stock property
+    total_stock = sum(p.total_stock for p in products_qs)
+    low_stock_products = [p for p in products_qs if p.total_stock <= 5]
+    out_of_stock = [p for p in products_qs if p.total_stock == 0]
+
+    # Top customers
+    top_customers = (
+        Order.objects.filter(items__product__owner=org)
+        .values("retailer__id", "retailer__name")   # looks like your Order has retailer field
+        .annotate(revenue=Sum(revenue_expr), orders_count=Count("id", distinct=True))
+        .order_by("-revenue")[:10]
+    )
+
+    context = {
+        "total_sales_value": total_sales_value,
+        "total_items_sold": total_items_sold,
+        "total_orders": total_orders,
+        "avg_order_value": avg_order_value,
+        "best_sellers": best_sellers,
+        "orders_by_status": orders_by_status,
+        "trend": trend,
+        "products_stock": products_qs,
+        "total_stock": total_stock,
+        "low_stock_products": low_stock_products,
+        "out_of_stock": out_of_stock,
+        "top_customers": top_customers,
+        "start_date": start_date,
+        "end_date": today,
+    }
+    return render(request, "catalog/reports.html", context)
+
+
+def reports_export_csv(request):
+    """
+    Simple CSV export of best_sellers and product stock for the wholesaler.
+    """
+    org = getattr(request.user, "organization", None)
+    if org is None:
+        return HttpResponse("No organization", status=400)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = "attachment; filename=reports.csv"
+
+    writer = csv.writer(response)
+    writer.writerow(["Product SKU", "Product Name", "Total Stock", "Qty Sold", "Revenue"])
+
+    # join best sellers and current stock
+    sellers = (
+        OrderItem.objects.filter(product__owner=org)
+        .values("product__id", "product__sku", "product__name")
+        .annotate(qty_sold=Sum("quantity"), revenue=Sum(ExpressionWrapper(F("quantity") * F("price"), output_field=FloatField())))
+        .order_by("-qty_sold")
+    )
+
+    # Build map of stock by product id
+    products = Product.objects.filter(owner=org).prefetch_related("size_stocks")
+    stock_map = {p.id: p.total_stock for p in products}
+
+    for s in sellers:
+        pid = s["product__id"]
+        writer.writerow([
+            s["product__sku"],
+            s["product__name"],
+            stock_map.get(pid, 0),
+            s.get("qty_sold") or 0,
+            s.get("revenue") or 0,
+        ])
+
+    return response
+
+from django.shortcuts import render
+from .models import Hero, TopBrand
+
+def home(request):
+    hero = Hero.objects.filter(is_active=True).order_by('order').first()
+    if not hero:
+        hero = Hero.objects.last()  # fallback
+
+    top_brands = TopBrand.objects.filter(is_active=True).order_by('order')[:4]
+    categories = Category.objects.all()
+    wholesalers = Organization.objects.filter(org_type="wholesaler")
+
+
+    return render(request, "catalog/home_public.html", {
+        "hero": hero,
+        "top_brands": top_brands,
+        "categories": categories,
+        "wholesalers": wholesalers,
+    })
+

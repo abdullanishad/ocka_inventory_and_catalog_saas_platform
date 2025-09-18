@@ -81,7 +81,7 @@ html, body { overflow-x: hidden; }
    MOBILE HOME (home_public)
    ========================================================= */
 .oc-phone {
-  max-width: 380px;
+  /* max-width: 380px; */
   margin: 0 auto;
   background: #f8fafc;    /* gray-50 */
   min-height: 100vh;
@@ -92,10 +92,10 @@ html, body { overflow-x: hidden; }
 .oc-btn {
   display: inline-block; margin-top: 16px; width: 100%; text-align: center;
   background: #111827; color: #fff; font-weight: 600; font-size: 14px;
-  padding: 12px 14px; border-radius: 8px; text-decoration: none;
+  padding: 12px 14px; border-radius: 5px; text-decoration: none;
 }
 
-.oc-section { padding: 8px 16px 0; }
+.oc-section { padding: 8px 16px 10px; }
 .oc-h2 { font-size: 15px; font-weight: 600; color: #111827; }
 
 .oc-brand-grid {
@@ -221,3 +221,116 @@ html, body { overflow-x: hidden; }
   object-fit: cover !important;
   display: block;
 }
+
+/* HERO section */
+.oc-hero {
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  color: white; /* fallback text color */
+}
+
+.oc-hero-inner {
+  max-width: 900px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+/* Title (h1) */
+.oc-hero h1 {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #fff;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7); /* subtle glow */
+}
+
+/* Subtitle (p) */
+.oc-hero p {
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  color: #fff;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6); /* softer shadow */
+}
+
+/* Responsive tweak */
+@media (max-width: 768px) {
+  .oc-hero h1 { font-size: 32px; }
+  .oc-hero p { font-size: 16px; }
+}
+
+
+
+/* Top brands grid */
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* always 4 columns on desktop */
+  gap: 16px;
+  align-items: center;
+  justify-items: center;
+  margin: 24px 0;
+}
+
+
+/* Responsive: collapse to 2 columns on tablet, 1 on small */
+@media (max-width: 991px) {
+  .brand-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .brand-grid { grid-template-columns: 1fr; }
+}
+
+/* Top brands section */
+.oc-top-brands {
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.oc-top-brands h2 {
+  font-size: 28px;
+  margin-bottom: 24px;
+}
+
+/* Top brands grid */
+.brand-grid {
+  display: grid;
+}
+
+/* Desktop: 4 columns, with larger padding */
+@media (min-width: 1024px) {
+  .brand-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px; /* bigger padding between logos */
+  }
+}
+
+/* Mobile: 2x2 grid, with very thin padding */
+@media (max-width: 1023px) {
+  .brand-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px; /* thin line between logos */
+  }
+}
+
+.brand-item {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1; /* force square */
+  overflow: hidden;
+}
+
+.brand-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* crop logos */
+  display: block;
+}
+
+
