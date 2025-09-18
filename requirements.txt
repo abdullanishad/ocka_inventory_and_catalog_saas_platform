@@ -1,0 +1,16 @@
+asgiref==3.9.1
+click==8.2.1
+dj-database-url==3.0.1
+Django==5.2.5
+git-filter-repo==2.47.0
+gunicorn==23.0.0
+packaging==25.0
+pillow==11.3.0
+psycopg==3.2.9
+psycopg-binary==3.2.9
+psycopg2-binary==2.9.10
+setuptools==80.9.0
+sqlparse==0.5.3
+svgwrite==1.4.3
+Tree==0.2.4
+whitenoise==6.11.0

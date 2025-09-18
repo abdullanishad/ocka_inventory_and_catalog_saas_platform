@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import dj_database_url # Add this import at the top
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,12 +23,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure--kplri1p49m-#pd(h%=vmu^4jx(@(4$8opa2w#+2icz8mm%kk='
+# SECRET_KEY = 'django-insecure--kplri1p49m-#pd(h%=vmu^4jx(@(4$8opa2w#+2icz8mm%kk='
+SECRET_KEY = os.environ.get('SECRET_KEY')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+# Set DEBUG to False for production. The 'RENDER' env var is automatically set by Render.
+DEBUG = 'RENDER' not in os.environ
+
 
 ALLOWED_HOSTS = []
+
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -45,6 +58,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,19 +99,26 @@ WSGI_APPLICATION = 'wholesale_catalog.wsgi.application'
 # }
 
 import os
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "wholesale_catalog",   # the DB you created
+#         "USER": "abdullanishad",
+#         "PASSWORD": "adgjmptw",        # the password you set in ALTER ROLE
+#         "HOST": "127.0.0.1",
+#         "PORT": "5432",
+#     }
+# }
+
+
+# ocka/settings.py (at the bottom, replacing the default DATABASES setting)
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "wholesale_catalog",   # the DB you created
-        "USER": "abdullanishad",
-        "PASSWORD": "adgjmptw",        # the password you set in ALTER ROLE
-        "HOST": "127.0.0.1",
-        "PORT": "5432",
-    }
+    'default': dj_database_url.config(
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
-
-
-
 
 
 # Password validation
@@ -136,6 +157,13 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Add these lines at the bottom of the file
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 
 # Default primary key field type
