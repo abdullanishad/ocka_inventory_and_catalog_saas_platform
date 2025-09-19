@@ -212,7 +212,7 @@ if not DEBUG:
     AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
     AWS_QUERYSTRING_AUTH = False
-    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.r2.cloudflarestorage.com/"
+    MEDIA_URL = "https://pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev/"
 else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
