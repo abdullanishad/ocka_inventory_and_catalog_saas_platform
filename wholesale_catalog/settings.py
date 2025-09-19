@@ -136,22 +136,19 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # ---------------------------------------------------------------------------
 
 if not DEBUG:
-    # Cloudflare R2 / S3
     AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")  # e.g. ocka-media
-    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")         # e.g. https://<account-id>.r2.cloudflarestorage.com
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
 
     AWS_S3_ADDRESSING_STYLE = "virtual"
     AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_QUERYSTRING_AUTH = False
 
-    endpoint_host = AWS_S3_ENDPOINT_URL.split("://", 1)[-1].rstrip("/")
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{endpoint_host}"
-
-    MEDIA_URL = "https://pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev/"
-    MEDIA_ROOT = None  # not used in prod
+    # Force storage URLs to use the public dev domain Cloudflare gave you:
+    AWS_S3_CUSTOM_DOMAIN = "pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 else:
     # Local dev
     MEDIA_URL = "/media/"
