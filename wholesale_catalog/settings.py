@@ -202,17 +202,35 @@ LOGIN_REDIRECT_URL = "accounts:dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 
-INSTALLED_APPS += ["storages"]
+# ensure storages present
+if "storages" not in INSTALLED_APPS:
+    INSTALLED_APPS += ["storages"]
 
 if not DEBUG:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
     AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
-    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")  # https://<account-id>.r2.cloudflarestorage.com
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
+
+    # R2 / S3 settings
+    AWS_S3_ADDRESSING_STYLE = "virtual"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_QUERYSTRING_AUTH = False
-    MEDIA_URL = "https://pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev/"
+
+    # build host like: ocka-media.3dfa39...r2.cloudflarestorage.com
+    endpoint_host = AWS_S3_ENDPOINT_URL.split("://", 1)[-1].rstrip("/")
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{endpoint_host}"
+
+    # you can use the public dev domain instead if preferred for reads (temporary)
+    # MEDIA_URL = "https://pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev/"
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
+
+
+
+    
