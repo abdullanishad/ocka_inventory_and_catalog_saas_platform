@@ -150,7 +150,7 @@ if not DEBUG:
     endpoint_host = AWS_S3_ENDPOINT_URL.split("://", 1)[-1].rstrip("/")
     AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{endpoint_host}"
 
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    MEDIA_URL = "https://pub-93d4ba01534b4b2ea578088067ac1acb.r2.dev/"
     MEDIA_ROOT = None  # not used in prod
 else:
     # Local dev
