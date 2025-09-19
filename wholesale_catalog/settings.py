@@ -26,32 +26,6 @@ SECRET_KEY = os.environ.get(
 # Render sets 'RENDER' in its environment automatically.
 DEBUG = 'RENDER' not in os.environ
 
-# ensure storages present
-if "storages" not in INSTALLED_APPS:
-    INSTALLED_APPS += ["storages"]
-
-if not DEBUG:
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
-    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
-    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
-    AWS_S3_ADDRESSING_STYLE = "virtual"
-    AWS_S3_SIGNATURE_VERSION = "s3v4"
-    AWS_QUERYSTRING_AUTH = False
-    endpoint_host = AWS_S3_ENDPOINT_URL.split("://", 1)[-1].rstrip("/")
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{endpoint_host}"
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
-else:
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
-
-ALLOWED_HOSTS = []
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-
 # ---------------------------------------------------------------------------
 # Application definition
 # ---------------------------------------------------------------------------
@@ -73,6 +47,33 @@ INSTALLED_APPS = [
     'catalog',
     'orders',
 ]
+
+# ---------------------------------------------------------------------------
+# Media files (Cloudflare R2 for production, local media in dev)
+# ---------------------------------------------------------------------------
+
+if not DEBUG:
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")  # e.g. ocka-media
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")  # e.g. https://<account-id>.r2.cloudflarestorage.com
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
+
+    # S3/R2 specific
+    AWS_S3_ADDRESSING_STYLE = "virtual"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_QUERYSTRING_AUTH = False
+
+    # Construct bucket domain: e.g. ocka-media.<account-id>.r2.cloudflarestorage.com
+    endpoint_host = AWS_S3_ENDPOINT_URL.split("://", 1)[-1].rstrip("/")
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.{endpoint_host}"
+
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+else:
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
