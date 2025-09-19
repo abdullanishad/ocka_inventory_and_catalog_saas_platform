@@ -25,7 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECRET_KEY = 'django-insecure--kplri1p49m-#pd(h%=vmu^4jx(@(4$8opa2w#+2icz8mm%kk='
-SECRET_KEY = os.environ.get('SECRET_KEY')
+# SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "dev-secret-key-change-me"  # fallback for local dev only
+)
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -113,13 +117,25 @@ import os
 
 
 # ocka/settings.py (at the bottom, replacing the default DATABASES setting)
+import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+if os.environ.get("DATABASE_URL"):
+    # Production: use DATABASE_URL from environment (Render/Heroku style)
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
+else:
+    # Local development: fallback to SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
 
 
 # Password validation
@@ -185,3 +201,18 @@ LOGIN_REDIRECT_URL = "accounts:dashboard"
 # After logout, redirect to login page (or product list)
 LOGOUT_REDIRECT_URL = "accounts:login"
 
+
+INSTALLED_APPS += ["storages"]
+
+if not DEBUG:
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
+    AWS_QUERYSTRING_AUTH = False
+    MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.r2.cloudflarestorage.com/"
+else:
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
