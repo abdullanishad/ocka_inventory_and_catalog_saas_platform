@@ -77,6 +77,10 @@ form .btn {
 /* Prevent sideways scroll */
 html, body { overflow-x: hidden; }
 
+body, input, button, select, textarea {
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 /* =========================================================
    MOBILE HOME (home_public)
    ========================================================= */
@@ -182,7 +186,6 @@ html, body { overflow-x: hidden; }
   contain: layout paint;
   content-visibility: auto;
   contain-intrinsic-size: 600px 800px; /* reserve portrait space */
-  min-height: 512px; /* initial safe height */
 }
 
 /* Hide scrollbars on track */
