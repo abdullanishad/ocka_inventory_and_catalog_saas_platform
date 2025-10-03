@@ -1,12 +1,108 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="container mt-5">
-    <div class="card shadow-sm p-4">
-        <h3>Welcome, {{ user.username }} 👋</h3>
-        <p>Email: {{ user.email }}</p>
-        <p>Role: {{ user.role }}</p>
 
-        <a href="{% url 'accounts:logout' %}" class="btn btn-danger">Logout</a>
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white shadow-lg rounded-2xl overflow-hidden">
+    <div class="p-6 border-b bg-gray-50">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        {% if user.profile.business_logo %}
+          <img src="{{ user.profile.business_logo.url }}" alt="{{ user.organization.name }} logo" class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md">
+        {% else %}
+          <div class="w-20 h-20 bg-gray-300 rounded-full grid place-items-center text-3xl font-bold text-gray-600 border-4 border-white shadow-md">
+            {{ user.organization.name|first|upper }}
+          </div>
+        {% endif %}
+        
+        <div class="flex-grow">
+          <h1 class="text-2xl font-bold text-gray-900">{{ user.organization.name|default:user.username }}</h1>
+          <p class="text-sm text-gray-500">{{ user.profile.user_type|capfirst|default:user.role|capfirst }}</p>
+          {% if user.profile.is_verified %}
+            <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Verified</span>
+          {% else %}
+            <span class="mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Not Verified</span>
+          {% endif %}
+        </div>
+        <div class="ml-auto flex-shrink-0">
+        <a href="{% url 'accounts:edit_profile' %}" class="bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 transition">Edit Profile</a>
+        </div>
+      </div>
     </div>
+
+    <div class="p-6 space-y-8">
+      {% if user.profile.about_us %}
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">About Us</h3>
+        <p class="text-sm text-gray-600 leading-relaxed">{{ user.profile.about_us }}</p>
+      </div>
+      {% endif %}
+
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Business Details</h3>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Business Name</dt>
+            <dd class="text-gray-800 font-medium">{{ user.organization.name }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Business Type</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.user_type|capfirst|default:user.role|capfirst }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Year Established</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.year_established|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">GSTIN</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.gstin|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-2">
+            <dt class="text-gray-500">Shipping Address</dt>
+            <dd class="text-gray-800 font-medium">
+              {% if user.profile.street_address %}{{ user.profile.street_address }}, {% endif %}
+              {% if user.profile.city %}{{ user.profile.city }}, {% endif %}
+              {% if user.profile.state %}{{ user.profile.state }} {% endif %}
+              {% if user.profile.pincode %}- {{ user.profile.pincode }}{% endif %}
+              {% if not user.profile.street_address and not user.profile.city %}Not provided{% endif %}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Contact</h3>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Email Address</dt>
+            <dd class="text-gray-800 font-medium">{{ user.email }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Phone Number</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.phone|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">WhatsApp</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.whatsapp_number|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Website</dt>
+            <dd class="text-blue-600 font-medium hover:underline"><a href="{{ user.profile.website }}" target="_blank">{{ user.profile.website|default:"Not provided" }}</a></dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Instagram</dt>
+            <dd class="text-blue-600 font-medium hover:underline"><a href="{{ user.profile.instagram_link }}" target="_blank">{{ user.profile.instagram_link|default:"Not provided" }}</a></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center">
+    <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="text-sm font-semibold text-red-600 hover:text-red-800 transition">Logout</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

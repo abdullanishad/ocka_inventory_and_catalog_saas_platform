@@ -83,3 +83,33 @@ def retailer_dashboard(request):
 def wholesaler_dashboard(request):
     return render(request, "catalog/wholesaler_dashboard.html")
 
+
+@login_required
+def profile(request):
+    return render(request, "accounts/profile.html")
+
+# accounts/views.py
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .forms import CustomUserCreationForm, CustomerProfileForm
+from .models import CustomerProfile
+
+# ... (your other views like CustomLoginView, signup, etc. remain the same) ...
+
+# === ADD THIS NEW VIEW ===
+@login_required
+def edit_profile(request):
+    # Get the user's profile, or create one if it doesn't exist
+    profile, created = CustomerProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = CustomerProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('accounts:profile')
+    else:
+        form = CustomerProfileForm(instance=profile)
+
+    return render(request, 'accounts/edit_profile.html', {'form': form})

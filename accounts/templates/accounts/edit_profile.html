@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="bg-white shadow-lg rounded-2xl">
+      <div class="p-6 border-b">
+        <h1 class="text-2xl font-bold text-gray-900">Edit Your Profile</h1>
+        <p class="text-sm text-gray-500">Keep your business information up to date.</p>
+      </div>
+
+      <div class="p-6 space-y-6">
+        {% if form.non_field_errors %}
+          <div class="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+          <div class="md:col-span-2">
+            <label class="text-sm font-medium text-gray-700">Business Logo</label>
+            {{ form.business_logo }}
+            {% for error in form.business_logo.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="text-sm font-medium text-gray-700">About Us</label>
+            {{ form.about_us }}
+            {% for error in form.about_us.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+
+          <div>
+            <label class="text-sm font-medium text-gray-700">Year Established</label>
+            {{ form.year_established }}
+            {% for error in form.year_established.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">GSTIN</label>
+            {{ form.gstin }}
+            {% for error in form.gstin.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          
+          <hr class="md:col-span-2 my-4">
+
+          <div>
+            <label class="text-sm font-medium text-gray-700">Phone Number</label>
+            {{ form.phone }}
+            {% for error in form.phone.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">WhatsApp Number</label>
+            {{ form.whatsapp_number }}
+            {% for error in form.whatsapp_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Website</label>
+            {{ form.website }}
+            {% for error in form.website.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Instagram Link</label>
+            {{ form.instagram_link }}
+            {% for error in form.instagram_link.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+
+          <hr class="md:col-span-2 my-4">
+
+          <div class="md:col-span-2">
+            <label class="text-sm font-medium text-gray-700">Street Address</label>
+            {{ form.street_address }}
+            {% for error in form.street_address.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">City</label>
+            {{ form.city }}
+            {% for error in form.city.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">State</label>
+            {{ form.state }}
+            {% for error in form.state.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Pincode</label>
+            {{ form.pincode }}
+            {% for error in form.pincode.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="p-6 bg-gray-50 flex justify-end gap-3">
+        <a href="{% url 'accounts:profile' %}" class="bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50">Cancel</a>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">Save Changes</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

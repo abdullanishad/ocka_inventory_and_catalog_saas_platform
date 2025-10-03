@@ -51,9 +51,9 @@
                class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-2 hidden z-50"
                 role="menu" aria-hidden="true">
             {% if user.is_authenticated %}
-              <div class="px-2 py-2 text-sm font-semibold text-gray-700 cursor-default">
-                {{ user.username }}
-              </div>
+              <a href="{% url 'accounts:profile' %}" class="block w-full text-left px-2 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100">
+                My Profile
+              </a>
               <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
                 <button type="submit"

@@ -1,12 +1,10 @@
 # catalog/forms.py
 from django import forms
-from django.forms import inlineformset_factory
-from .models import Product, SizeStock, Fabric, Color, ProductImage
+from .models import Product
 
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        # sku is auto; don't expose it in the form
         fields = [
             "name",
             "image",
@@ -14,33 +12,21 @@ class ProductForm(forms.ModelForm):
             "wholesale_price",
             "retail_price",
             "description",
-            "fabric",
+            "fabrics",
             "colors",
         ]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 4}),
+            "name": forms.TextInput(attrs={'class': 'w-full border rounded-lg px-3 py-2'}),
+            "category": forms.Select(attrs={'class': 'w-full border rounded-lg px-3 py-2'}),
+            "wholesale_price": forms.NumberInput(attrs={'class': 'w-full border rounded-lg px-3 py-2'}),
+            "retail_price": forms.NumberInput(attrs={'class': 'w-full border rounded-lg px-3 py-2'}),
+            "description": forms.Textarea(attrs={"rows": 4, 'class': 'w-full border rounded-lg px-3 py-2'}),
+            "fabric": forms.Select(attrs={'class': 'w-full border rounded-lg px-3 py-2'}),
+             # === WIDGETS FOR CHECKBOXES ===
+            "fabrics": forms.CheckboxSelectMultiple,
+            "colors": forms.CheckboxSelectMultiple,
         }
 
-        
-
-from django.forms import inlineformset_factory
-from .models import Product, SizeStock
-
-SizeStockFormSet = inlineformset_factory(
-    Product,
-    SizeStock,
-    fields=["size", "quantity"],
-    extra=0,         # ❌ no blank rows
-    can_delete=False # ❌ no delete checkbox if you don’t want wholesalers to remove sizes
-)
-
-
-# Optional gallery images formset
-ProductImageFormSet = inlineformset_factory(
-    Product,
-    ProductImage,
-    fields=["image", "alt_text", "position"],
-    extra=1,
-    can_delete=True,
-)
-
+#
+# The old MoqOptionFormSet that was causing the error has been completely removed.
+#

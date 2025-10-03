@@ -4,13 +4,16 @@
 {% block title %}{{ product.name }}{% endblock %}
 
 {% block content %}
+<style>
+  #pd-carousel {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+</style>
 
-<!-- Page container -->
-<div class="max-w-sm mx-auto py-4 sm:max-w-md">
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-  <!-- ========== Product Images Carousel (3:4 portrait) ========== -->
   <div id="pd-carousel" class="relative overflow-hidden select-none w-full max-w-full mx-auto">
-    <!-- Track -->
     <div class="pd-track flex transition-transform duration-300 ease-out">
       {% if product.image %}
         <div class="pd-slide">
@@ -30,7 +33,6 @@
       {% endfor %}
     </div>
 
-    <!-- Arrows -->
     <button type="button" class="hidden md:grid absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow place-items-center pd-prev" aria-label="Previous image">
       <svg viewBox="0 0 24 24" class="w-5 h-5"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -38,8 +40,7 @@
       <svg viewBox="0 0 24 24" class="w-5 h-5"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
 
-    <!-- Dots -->
-    <div class="absolute bottom-2 inset-x-0 flex justify-center gap-1.5">
+    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex justify-center gap=1.5">
       {% if product.image %}
         <button type="button" class="pd-dot w-2 h-2 rounded-full bg-white/90"></button>
       {% endif %}
@@ -51,7 +52,6 @@
     </div>
   </div>
 
-  <!-- Thumbnails (also 3:4) -->
   {% if product.image or product.images.all %}
     <div class="mt-3 hidden md:flex gap-2 overflow-x-auto">
       {% if product.image %}
@@ -71,7 +71,6 @@
     </div>
   {% endif %}
 
-  <!-- ========== Title / meta ========== -->
   <h1 class="text-[22px] font-bold text-gray-900 leading-snug mt-4">{{ product.name }}</h1>
   <p class="text-gray-500 text-sm mt-1">SKU: {{ product.sku }}</p>
   <a href="#" class="text-blue-600 font-medium hover:underline mt-1 inline-block">
@@ -83,67 +82,57 @@
 
   <div class="border-t mt-4 mb-3"></div>
 
- <!-- ========== Available Sizes ========== -->
-<div class="mb-4">
-  <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Sizes</h3>
-  <div class="flex gap-2 flex-wrap">
-    {% for size, qty in product.size_stock_display.items %}
-      <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white">
-        {{ size }}
-      </span>
-    {% empty %}
-      <span class="text-sm text-gray-400">No sizes listed</span>
-    {% endfor %}
+  <div class="mb-4">
+    <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Sizes</h3>
+    <div class="flex gap-2 flex-wrap">
+      {% for size, qty in product.size_stock_display.items %}
+        <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white">
+          {{ size }}
+        </span>
+      {% empty %}
+        <span class="text-sm text-gray-400">No sizes listed</span>
+      {% endfor %}
+    </div>
   </div>
-</div>
-
 
   <div class="border-t mt-4 mb-3"></div>
 
-  <!-- ========== MOQ Options ========== -->
   <div class="mb-4">
-    <h3 class="text-sm font-semibold text-gray-900 mb-3">MOQ | Sizes | Ratio</h3>
-    {% with moqs=product.available_ratios_and_moq %}
+    <h3 class="text-sm font-semibold text-gray-900 mb-3">Select a Pack</h3>
+    
+    {% with moqs=product.available_moq_options %}
       {% if moqs %}
         <div id="moq-group" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {% for opt in moqs %}
-            {# opt.1 = pieces, opt.0 = ratio #}
+          {% for option in moqs %}
             <button
               type="button"
               class="moq-btn flex items-center justify-center gap-2 rounded-2xl border px-4 py-2 bg-white text-gray-900 hover:bg-gray-50"
               data-index="{{ forloop.counter0 }}"
-              data-pcs="{{ opt.1 }}"
-              data-ratio="{{ opt.0 }}"
+              data-pcs="{{ option.total_quantity }}"
+              data-ratio="{{ option.display_label }}"
               aria-pressed="false"
             >
-              <span class="font-semibold">{{ opt.1 }} pcs</span>
+              <span class="font-semibold">{{ option.total_quantity }} pcs</span>
               <span class="opacity-60">|</span>
-              <span class="truncate">
-                {% for size_name, _ in product.size_stock_totals.items %}
-                  {{ size_name }}{% if not forloop.last %}, {% endif %}
-                {% empty %}-{% endfor %}
-              </span>
-              <span class="opacity-60">|</span>
-              <span class="font-medium">{{ opt.0 }}</span>
+              <span class="truncate">{{ option.sizes_str }} | {{ option.ratio_str }}</span>
             </button>
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-sm text-gray-400">No MOQ options.</p>
+        <p class="text-sm text-gray-400">There are no available packs for this product right now.</p>
       {% endif %}
     {% endwith %}
   </div>
 
   <div class="border-t mt-4 mb-3"></div>
 
-  <!-- ========== Quantity stepper ========== -->
-  {% with moqs=product.available_ratios_and_moq %}
+  {% with moqs=product.available_moq_options %}
     {% if moqs %}
-      {% with minpcs=moqs.0.1 %}
+      {% with minpcs=moqs.0.total_quantity %}
         <div class="mb-4">
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900">Quantity</h3>
-            <span class="text-sm text-gray-500">Min: {{ minpcs }} pcs</span>
+            <!-- <span class="text-sm text-gray-500">Min: {{ minpcs }} pcs</span> -->
           </div>
           <div class="mt-2 flex items-center gap-3">
             <button type="button" id="qty-minus" class="h-9 w-9 grid place-items-center rounded-lg border bg-white text-gray-800">−</button>
@@ -167,7 +156,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- ========== Total price card ========== -->
   <div class="rounded-2xl border bg-blue-50/60 p-4 mb-4">
     <div class="flex items-center justify-between">
       <span class="text-sm text-gray-700">Total Price:</span>
@@ -178,43 +166,36 @@
     </div>
   </div>
 
-  <!-- ========== CTAs ========== -->
-<!-- ========== CTAs ========== -->
-<div class="space-y-3 mb-8">
-  {% if user.is_authenticated and user.organization.org_type == "retailer" %}
-    <!-- Retailer logged in → Add to Cart works -->
-    <button id="btn-add-to-cart"
-      class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2">
-      <span class="text-lg">+</span>
-      <span>Add To Cart</span>
-    </button>
+  <div class="space-y-3 mb-8">
+    {% if user.is_authenticated and user.organization.org_type == "retailer" %}
+      <button id="btn-add-to-cart"
+        class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        disabled>
+        <span class="text-lg">+</span>
+        <span id="add-to-cart-text">Add To Cart</span>
+      </button>
+      <p id="moq-message" class="text-center text-sm text-red-600 hidden">Please select a pack to continue.</p>
 
-  {% elif user.is_authenticated and user.organization.org_type == "wholesaler" %}
-    <!-- Logged in wholesaler → Show disabled / info -->
-    <button disabled
-      class="w-full h-12 rounded-xl bg-gray-400 text-white font-semibold flex items-center justify-center gap-2 cursor-not-allowed">
-      <span class="text-lg">+</span>
-      <span>Retailers Only</span>
-    </button>
+    {% elif user.is_authenticated and user.organization.org_type == "wholesaler" %}
+      <button disabled class="w-full h-12 rounded-xl bg-gray-400 text-white font-semibold flex items-center justify-center gap-2 cursor-not-allowed">
+        <span class="text-lg">+</span>
+        <span>Retailers Only</span>
+      </button>
 
-  {% else %}
-    <!-- Not logged in → Redirect to login -->
-    <a href="{% url 'accounts:login' %}?next={{ request.path }}"
-      class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2">
-      <span>Login to Add to cart</span>
-    </a>
-  {% endif %}
-</div>
-
+    {% else %}
+      <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+        class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2">
+        <span>Login to Add to cart</span>
+      </a>
+    {% endif %}
 
     <a href="https://wa.me/{{ product.owner.phone|default:'+919778192886' }}?text=Hi,%20I'm%20interested%20in%20{{ product.name }}"
        class="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center justify-center gap-2">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 2C6.478 2 2 6.478 2 12.004c0 2.119.61 4.107 1.667 5.785L2 22l4.354-1.626A9.95 9.95 0 0 0 12.004 22C17.53 22 22 17.522 22 12.004 22 6.478 17.53 2 12.004 2Zm0 18c-1.756 0-3.39-.516-4.763-1.404l-.341-.213-2.584.964.919-2.674-.222-.342A7.96 7.96 0 0 1 4 12.004C4 7.59 7.59 4 12.004 4c4.413 0 8.003 3.59 8.003 8.004 0 4.415-3.59 8.004-8.003 8.004Z"/></svg>
       <span>Inquire via WhatsApp</span>
     </a>
+  </div>
 
-
-    <!-- ========== Product Details ========== -->
   <section class="mt-8 border-t pt-6">
     <h3 class="text-sm font-semibold text-gray-900 mb-3">Product Details</h3>
 
@@ -225,21 +206,27 @@
     {% endif %}
 
     <div class="mt-4 grid grid-cols-2 gap-6">
-      <div>
-        <h4 class="text-xs font-medium text-gray-500">Fabric</h4>
-        <p class="text-sm text-gray-800">{{ product.fabric.name|default:"—" }}</p>
-      </div>
+  <div>
+    <h4 class="text-xs font-medium text-gray-500">Fabric</h4>
+    <p class="text-sm text-gray-800">
+      {% for fabric in product.fabrics.all %}
+        {{ fabric.name }}{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        —
+      {% endfor %}
+    </p>
+  </div>
 
-      <div>
-        <h4 class="text-xs font-medium text-gray-500">Colors</h4>
-        <p class="text-sm text-gray-800">
-          {% if product.colors.exists %}
-            {% for c in product.colors.all %}
-              {{ c.name }}{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-          {% else %}—{% endif %}
-        </p>
-      </div>
+  <div>
+    <h4 class="text-xs font-medium text-gray-500">Colors</h4>
+    <p class="text-sm text-gray-800">
+      {% for c in product.colors.all %}
+        {{ c.name }}{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        —
+      {% endfor %}
+    </p>
+  </div>
 
       <div class="col-span-2">
         <div class="rounded-xl border bg-white p-4 flex items-center justify-between">
@@ -260,13 +247,6 @@
   </section>
 </div>
 
-  </div>
-
-  
-
-<!-- ====================== JS ====================== -->
-
-<!-- Quantity stepper -->
 <script>
 (function(){
   const price = Number(document.getElementById('unit-price').textContent.replace(/[^0-9.]/g,'')) || 0;
@@ -295,7 +275,6 @@
 })();
 </script>
 
-<!-- MOQ select -->
 <script>
 (function () {
   const moqGroup = document.getElementById('moq-group');
@@ -305,6 +284,8 @@
   const unitPrice = Number((document.getElementById('unit-price')?.textContent||'').replace(/[^0-9.]/g,'')) || 0;
   const totalEl  = document.getElementById('total-amount');
   const qtyLabel = document.getElementById('qty-label');
+  const addBtn = document.getElementById('btn-add-to-cart');
+  const moqMessage = document.getElementById('moq-message');
 
   function setActive(i) {
     btns.forEach((b, bi) => {
@@ -316,37 +297,52 @@
       b.classList.toggle('hover:bg-gray-50', !active);
     });
     const pcs = Number(btns[i].dataset.pcs) || 1;
-    qtyInput.min = String(pcs);
-    qtyInput.step = String(pcs);
-    let val = Number(qtyInput.value) || pcs;
-    val = Math.max(pcs, Math.round(val / pcs) * pcs);
-    qtyInput.value = String(val);
-    totalEl.textContent = '₹' + (val * unitPrice).toLocaleString('en-IN');
-    qtyLabel.textContent = String(val);
+    if (qtyInput) {
+      qtyInput.min = String(pcs);
+      qtyInput.step = String(pcs);
+      let val = Number(qtyInput.value) || pcs;
+      val = Math.max(pcs, Math.round(val / pcs) * pcs);
+      qtyInput.value = String(val);
+      totalEl.textContent = '₹' + (val * unitPrice).toLocaleString('en-IN');
+      qtyLabel.textContent = String(val);
+    }
+    
+    if (addBtn) {
+        addBtn.disabled = false;
+    }
+    if (moqMessage) {
+        moqMessage.classList.add('hidden');
+    }
   }
 
   btns.forEach((btn, i) => btn.addEventListener('click', () => setActive(i)));
-  if (btns.length) setActive(0);
 })();
 </script>
 
-<!-- Add to Cart -->
 <script>
 (function(){
   function csrftoken(){ const m=document.cookie.match(/csrftoken=([^;]+)/); return m?m[1]:''; }
   const addBtn = document.getElementById('btn-add-to-cart');
   const qtyInput = document.getElementById('qty-input');
   const unitEl = document.getElementById('unit-price');
+  const moqMessage = document.getElementById('moq-message');
   const moqActive = () => document.querySelector('#moq-group .moq-btn[aria-pressed="true"]');
   if (!addBtn) return;
 
   addBtn.addEventListener('click', async () => {
+    const moqBtn = moqActive();
+    // If no pack is selected, show the message and stop.
+    if (!moqBtn) {
+      if (moqMessage) {
+        moqMessage.classList.remove('hidden');
+      }
+      return; 
+    }
+
     const productId = "{{ product.id }}";
     const quantity  = qtyInput ? (Number(qtyInput.value)||1) : 1;
     const price     = unitEl ? unitEl.textContent.replace(/[^0-9.]/g,'') : "{{ product.wholesale_price }}";
-    const moqBtn    = moqActive();
-    const sizesText = moqBtn ? (moqBtn.querySelectorAll('span')[2]?.textContent?.trim() || '') : '';
-    const moqLabel  = moqBtn ? `${moqBtn.dataset.pcs} pcs | ${sizesText} | ${moqBtn.dataset.ratio}` : '';
+    const moqLabel  = moqBtn.dataset.ratio || '';
 
     const form = new URLSearchParams();
     form.set('product_id', productId);
@@ -360,13 +356,16 @@
       headers: { "X-CSRFToken": csrftoken(), "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
       body: form.toString(),
     });
-    if (!res.ok) { alert("Could not add to cart."); return; }
+
+    if (!res.ok) { 
+      alert("Could not add to cart."); 
+      return; 
+    }
     window.location.href = "{% url 'orders:view_cart' %}";
   });
 })();
 </script>
 
-<!-- Carousel JS (updated: allow vertical scroll when user swipes up/down) -->
 <script>
 (function () {
   const root = document.getElementById('pd-carousel');
@@ -479,9 +478,6 @@
   window.addEventListener('mouseup', onEnd);
 
   // touch (mobile)
-  // touchstart must not be passive if you want to call preventDefault later on touchmove,
-  // but we only call preventDefault when horizontalGesture === true (set in onMove),
-  // and touchmove listener is non-passive so calling preventDefault there will work.
   track.addEventListener('touchstart', (e) => {
     if (!e.touches || !e.touches[0]) return;
     onStart(e.touches[0].clientX, e.touches[0].clientY);

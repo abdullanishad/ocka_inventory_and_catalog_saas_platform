@@ -185,7 +185,6 @@ body, input, button, select, textarea {
   overflow: hidden;
   contain: layout paint;
   content-visibility: auto;
-  contain-intrinsic-size: 600px 800px; /* reserve portrait space */
 }
 
 /* Hide scrollbars on track */
@@ -335,5 +334,3 @@ body, input, button, select, textarea {
   object-fit: cover; /* crop logos */
   display: block;
 }
-
-

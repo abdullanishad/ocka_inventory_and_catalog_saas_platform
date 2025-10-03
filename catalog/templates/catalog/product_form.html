@@ -4,136 +4,176 @@
 {% block content %}
 <form id="product-form" method="post" enctype="multipart/form-data" class="space-y-6">
   {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="max-w-2xl mx-auto p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+  {% endif %}
+  
   <div class="max-w-2xl mx-auto p-4 space-y-6">
 
-   <!-- Upload + Preview Section -->
-<div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-6">
-  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M12 4v16m8-8H4"/>
-  </svg>
-  <p class="mt-2 text-sm text-gray-600">Add Photos</p>
-  <p class="text-xs text-gray-400">Upload up to 10 photos of your product</p>
+    <!-- Image Upload Section -->
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-6">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      <p class="mt-2 text-sm text-gray-600">Add Photos</p>
+      <p class="text-xs text-gray-400">Upload up to 10 photos of your product</p>
 
-  <label class="inline-block mt-3 cursor-pointer px-4 py-2 bg-black text-white rounded-lg">
-    + Select Photos
-    <input type="file" id="photo-upload" name="new_images" accept="image/*" multiple class="hidden">
-  </label>
+      <label class="inline-block mt-3 cursor-pointer px-4 py-2 bg-black text-white rounded-lg">
+        + Select Photos
+        <input type="file" id="photo-upload" name="new_images" accept="image/*" multiple class="hidden">
+      </label>
 
-  <!-- ✅ Preview new uploads -->
-  <div id="uploaded-slots" class="grid grid-cols-3 gap-4 mt-4"></div>
-</div>
+      <div id="uploaded-slots" class="grid grid-cols-3 gap-4 mt-4"></div>
+    </div>
 
+    <!-- Existing Photos Section -->
+    {% if product.pk %}
+      <h3 class="text-xs text-gray-500 mt-4">Existing Photos</h3>
+      <div id="existing-photos" class="grid grid-cols-3 gap-4 mt-2">
 
-<!-- ✅ Show existing DB images only when editing -->
-{% if product.pk %}
-  <h3 class="text-xs text-gray-500 mt-4">Existing Photos</h3>
-  <div id="existing-photos" class="grid grid-cols-3 gap-4 mt-2">
+        {# Cover shown once, no delete button #}
+        {% if product.image %}
+          <div class="relative border rounded-lg overflow-hidden h-32">
+            <img src="{{ product.image.url }}" class="object-cover w-full h-full">
+            <span class="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">Cover</span>
+          </div>
+        {% endif %}
 
-    {# Cover shown once, no delete button #}
-    {% if product.image %}
-      <div class="relative border rounded-lg overflow-hidden h-32">
-        <img src="{{ product.image.url }}" class="object-cover w-full h-full">
-        <span class="absolute top-1 left-1 bg-black text-white text-xs px-2 py-0.5 rounded">Cover</span>
+        {# Other images: radio + DELETE #}
+        {% for img in product.images.all %}
+          {% if not product.image or img.image.url != product.image.url %}
+            <div class="relative border rounded-lg overflow-hidden h-32" data-image-card>
+              <img src="{{ img.image.url }}" class="object-cover w-full h-full">
+
+              <button type="button"
+                      class="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full w-7 h-7 grid place-items-center shadow delete-img-btn"
+                      aria-label="Remove photo"
+                      data-url="{% url 'catalog:product_image_delete' img.id %}">
+                ✕
+              </button>
+
+              <label class="absolute bottom-1 left-1 flex items-center gap-1 bg-white px-2 py-0.5 rounded text-xs cursor-pointer">
+                <input type="radio" name="cover_choice" value="{{ img.id }}">
+                Cover
+              </label>
+            </div>
+          {% endif %}
+        {% endfor %}
       </div>
     {% endif %}
 
-    {# Other images: radio + DELETE ❌ #}
-    {% for img in product.images.all %}
-      {% if not product.image or img.image.url != product.image.url %}
-        <div class="relative border rounded-lg overflow-hidden h-32" data-image-card>
-          <img src="{{ img.image.url }}" class="object-cover w-full h-full">
-
-          <!-- ❌ delete button -->
-          <button type="button"
-                  class="absolute top-1 right-1 bg-white/90 hover:bg-white rounded-full w-7 h-7 grid place-items-center shadow delete-img-btn"
-                  aria-label="Remove photo"
-                  data-url="{% url 'catalog:product_image_delete' img.id %}">
-            ✕
-          </button>
-
-          <label class="absolute bottom-1 left-1 flex items-center gap-1 bg-white px-2 py-0.5 rounded text-xs cursor-pointer">
-            <input type="radio" name="cover_choice" value="{{ img.id }}">
-            Cover
-          </label>
-        </div>
-      {% endif %}
-    {% endfor %}
-  </div>
-{% endif %}
-
-
-
-
-    <!-- Basic Info -->
+    <!-- Basic Information Section -->
     <div class="bg-white shadow rounded-xl p-4 space-y-3">
       <h2 class="text-sm font-medium text-gray-700">Basic Information</h2>
       <div>
         <label class="block text-xs text-gray-500">Product Name</label>
         {{ form.name }}
+        {% for error in form.name.errors %}
+          <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+        {% endfor %}
       </div>
       <div>
         <label class="block text-xs text-gray-500">SKU (Auto-generated)</label>
-        <input type="text" value="{{ form.instance.sku|default:'Auto-generated' }}" 
+        <input type="text" value="{{ form.instance.sku|default:'Auto-generated' }}"
                class="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-600 text-sm" readonly>
       </div>
       <div>
         <label class="block text-xs text-gray-500">Category</label>
         {{ form.category }}
+        {% for error in form.category.errors %}
+          <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+        {% endfor %}
       </div>
     </div>
 
-    <!-- Pricing -->
+    <!-- Pricing Section -->
     <div class="bg-white shadow rounded-xl p-4 space-y-3">
       <h2 class="text-sm font-medium text-gray-700">Pricing</h2>
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-xs text-gray-500">Wholesale Price</label>
           {{ form.wholesale_price }}
+          {% for error in form.wholesale_price.errors %}
+            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+          {% endfor %}
         </div>
         <div>
           <label class="block text-xs text-gray-500">Retail Price</label>
           {{ form.retail_price }}
+          {% for error in form.retail_price.errors %}
+            <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+          {% endfor %}
         </div>
       </div>
     </div>
 
-    <!-- Additional Information -->
+    <!-- MOQ Options Section -->
+    <div class="bg-white shadow rounded-xl p-4">
+      <h2 class="text-sm font-medium text-gray-700 mb-3">MOQ Options</h2>
+      <p class="text-xs text-gray-500 mb-4">Define packs by setting the quantity for each size. Each row is a separate option for the retailer.</p>
+      
+      <div id="moq-form-container"></div>
+      <button type="button" id="add-moq-form" class="mt-2 text-sm text-blue-600 hover:underline">+ Add an MOQ Option</button>
+    </div>
+
+    <!-- Additional Information Section -->
     <div class="bg-white shadow rounded-xl p-4 space-y-3">
       <h2 class="text-sm font-medium text-gray-700">Additional Information</h2>
       <div>
         <label class="block text-xs text-gray-500">Description</label>
         {{ form.description }}
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500">Fabric</label>
-        {{ form.fabric }}
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500">Colors</label>
-        {{ form.colors }}
-        <p class="text-xs text-gray-500">Select one or multiple colors.</p>
-      </div>
-    </div>
-
-    <!-- Stock by Size -->
-    <div class="bg-white shadow rounded-xl p-4">
-      <h2 class="text-sm font-medium text-gray-700 mb-3">Stock by Size</h2>
-      <div id="size-stock-container" class="space-y-2">
-        {% for sid, qty in product.size_stock_totals.items %}
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-700">{{ sid }} </span>
-            <input type="number" name="size_{{ sid }}" value="{{ qty }}" min="0"
-                   class="w-20 border rounded-lg px-2 py-1 text-sm">
-          </div>
+        {% for error in form.description.errors %}
+          <p class="text-red-500 text-xs mt-1">{{ error }}</p>
         {% endfor %}
       </div>
-      <p class="text-xs text-gray-500 mt-2">Total Stock: {{ product.total_stock|default:0 }} units</p>
+
+      <div>
+  <label class="block text-xs text-gray-500">Fabrics</label>
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1 border rounded-lg p-2">
+    {% for choice in form.fabrics %}
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        {{ choice.tag }}
+        <span>{{ choice.choice_label }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  <p class="text-xs text-gray-500 mt-1">Select one or multiple fabrics.</p>
+  {% for error in form.fabrics.errors %}
+    <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+  {% endfor %}
+</div>
+
+<div>
+  <label class="block text-xs text-gray-500">Colors</label>
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1 border rounded-lg p-2">
+    {% for choice in form.colors %}
+      <label class="flex items-center gap-2 text-sm text-gray-700">
+        {{ choice.tag }}
+        <span>{{ choice.choice_label }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  <p class="text-xs text-gray-500 mt-1">Select one or multiple colors.</p>
+  {% for error in form.colors.errors %}
+    <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+  {% endfor %}
+</div>
     </div>
 
-    <!-- Save Button -->
+    <!-- Stock by Size Section -->
+    <div class="bg-white shadow rounded-xl p-4">
+      <h2 class="text-sm font-medium text-gray-700 mb-3">Stock by Size</h2>
+      <div id="size-stock-container" class="space-y-2"></div>
+    </div>
+
+    <!-- Submit Button -->
     <div class="sticky bottom-0 bg-gray-50 p-4 border-t flex justify-end">
-      <button type="submit" form="product-form" class="bg-black text-white px-5 py-2 rounded-lg w-full">
+      <button type="submit" class="bg-black text-white px-5 py-2 rounded-lg w-full">
         {% if mode == "add" %} Add Product {% else %} Save Changes {% endif %}
       </button>
     </div>
@@ -142,6 +182,48 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  // --- Custom Checkbox Dropdown Logic ---
+  function setupCheckboxDropdown(container) {
+    const toggleButton = container.querySelector('.dropdown-toggle');
+    const dropdownMenu = container.querySelector('.dropdown-menu');
+    const label = container.querySelector('.dropdown-label');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    const originalLabel = label.textContent;
+
+    function updateLabel() {
+      const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+      if (selectedCount === 0) {
+        label.textContent = originalLabel;
+      } else if (selectedCount === 1) {
+        label.textContent = `1 item selected`;
+      } else {
+        label.textContent = `${selectedCount} items selected`;
+      }
+    }
+
+    toggleButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      dropdownMenu.classList.toggle('hidden');
+    });
+
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateLabel);
+    });
+
+    updateLabel(); // Set initial label on page load
+  }
+
+  document.querySelectorAll('.dropdown-checkbox').forEach(setupCheckboxDropdown);
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    document.querySelectorAll('.dropdown-checkbox').forEach(container => {
+      if (!container.contains(event.target)) {
+        container.querySelector('.dropdown-menu').classList.add('hidden');
+      }
+    });
+  });
+
   // --- Live image preview ---
   const fileInput = document.getElementById("photo-upload");
   const slotsContainer = document.getElementById("uploaded-slots");
@@ -169,90 +251,132 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- Reload sizes when category changes OR when editing ---
+  // --- Updated MOQ and Size Stock Logic ---
   const categorySelect = document.getElementById("id_category");
-  const sizeStockContainer = document.getElementById("size-stock-container");
+  const moqContainer = document.getElementById('moq-form-container');
+  const stockContainer = document.getElementById('size-stock-container');
+  const addMoqButton = document.getElementById('add-moq-form');
+  let moqFormCount = 0;
 
-  // pre-filled stock quantities from backend (as JSON)
-  const sizeStockTotals = {{ product.size_stock_totals|default_if_none:"{}"|safe }};
+  // Correctly parse the JSON data from the view
+  const existingMoqs = JSON.parse('{{ existing_moqs_json|escapejs }}');
+  const existingStock = {{ product.size_stock_display|safe|default:"{}" }};
 
-  function loadSizes(categoryId) {
-    if (!categoryId) return;
+  function createMoqForm(sizes, moqData = {}) {
+    const formIndex = moqFormCount++;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'moq-form border-t pt-4 mt-4';
+    wrapper.setAttribute('data-index', formIndex);
+
+    let sizeInputsHtml = '<div class="grid grid-cols-3 gap-3">';
+    sizes.forEach(size => {
+      const qty = moqData[size.name] || 0;
+      sizeInputsHtml += `
+        <div class="flex items-center gap-2">
+          <label class="w-8 text-sm font-medium text-gray-600">${size.name}</label>
+          <input type="number" name="moq-${formIndex}-size-${size.name}" value="${qty}" min="0" class="w-full border rounded-lg px-2 py-1 text-sm">
+        </div>
+      `;
+    });
+    sizeInputsHtml += '</div>';
+    
+    const deleteButtonHtml = `<button type="button" class="text-red-500 text-xs hover:underline mt-2" onclick="this.closest('.moq-form').remove()">Remove Option</button>`;
+    wrapper.innerHTML = sizeInputsHtml + deleteButtonHtml;
+    moqContainer.appendChild(wrapper);
+  }
+  
+  function updateFormsForCategory(categoryId) {
+    if (!categoryId) {
+      moqContainer.innerHTML = '<p class="text-xs text-gray-400">Please select a category to define MOQ options.</p>';
+      stockContainer.innerHTML = '';
+      addMoqButton.style.display = 'none';
+      return;
+    }
+    addMoqButton.style.display = 'inline-block';
+
     fetch(`/catalog/category/${categoryId}/sizes/`)
       .then(res => res.json())
-      .then(data => {
-        sizeStockContainer.innerHTML = "";
-        data.forEach(size => {
-          const existingQty = sizeStockTotals[size.id] || 0;
-          const row = document.createElement("div");
-          row.className = "flex justify-between items-center";
-          row.innerHTML = `
-            <span class="text-sm text-gray-700">${size.name}</span>
-            <input type="number" name="size_${size.id}" value="${existingQty}" min="0"
-                   class="w-20 border rounded-lg px-2 py-1 text-sm">
+      .then(sizes => {
+        moqContainer.innerHTML = '';
+        stockContainer.innerHTML = '';
+        moqFormCount = 0;
+
+        sizes.forEach(size => {
+          const qty = existingStock[size.name] || 0;
+          stockContainer.innerHTML += `
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-700">${size.name}</span>
+              <input type="number" name="stock-size-${size.id}" value="${qty}" min="0" class="w-20 border rounded-lg px-2 py-1 text-sm">
+            </div>
           `;
-          sizeStockContainer.appendChild(row);
         });
+
+        if (existingMoqs.length > 0) {
+          existingMoqs.forEach(moq => createMoqForm(sizes, moq));
+        } else {
+          createMoqForm(sizes);
+        }
+
+        addMoqButton.onclick = () => createMoqForm(sizes);
       });
   }
 
   if (categorySelect) {
-    // load sizes on category change
     categorySelect.addEventListener("change", function () {
-      loadSizes(this.value);
+      // When changing category on an edit page, clear old data
+      if ("{{ mode }}" === "edit") {
+        existingMoqs.length = 0; 
+      }
+      updateFormsForCategory(this.value);
     });
 
-    // load sizes immediately if editing (preselected category exists)
+    // Initial load
     if (categorySelect.value) {
-      loadSizes(categorySelect.value);
+      updateFormsForCategory(categorySelect.value);
+    } else {
+      moqContainer.innerHTML = '<p class="text-xs text-gray-400">Please select a category to define MOQ options.</p>';
+      addMoqButton.style.display = 'none';
     }
+  }
+
+  // --- Image Delete Functionality ---
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // Delegate clicks for deleting existing images
+  const grid = document.getElementById('existing-photos');
+  if (grid) {
+    grid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.delete-img-btn');
+      if (!btn) return;
+
+      const url = btn.dataset.url;
+      const card = btn.closest('[data-image-card]');
+      if (!url || !card) return;
+
+      if (!confirm('Remove this photo?')) return;
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          card.remove();
+        } else {
+          alert(data.error || 'Failed to delete image.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Network error while deleting image.');
+      }
+    });
   }
 });
 </script>
-
-<script>
-// CSRF helper (reads cookie set by Django)
-function getCookie(name) {
-  const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
-const csrftoken = getCookie('csrftoken');
-
-// Delegate clicks from the grid container
-document.addEventListener('DOMContentLoaded', function () {
-  const grid = document.getElementById('existing-photos');
-  if (!grid) return;
-
-  grid.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.delete-img-btn');
-    if (!btn) return;
-
-    const url = btn.dataset.url;
-    const card = btn.closest('[data-image-card]');
-    if (!url || !card) return;
-
-    if (!confirm('Remove this photo?')) return;
-
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.ok) {
-        // remove the card from the DOM
-        card.remove();
-      } else {
-        alert(data.error || 'Failed to delete image.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Network error while deleting image.');
-    }
-  });
-});
-</script>
-
-
 {% endblock %}

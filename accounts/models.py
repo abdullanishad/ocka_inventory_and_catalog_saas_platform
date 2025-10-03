@@ -33,50 +33,44 @@ from django.db.models.signals import post_save
 
 # If using Django >= 3.1, use models.JSONField; else from django.contrib.postgres.fields import JSONField
 
+# --- UPDATED CustomerProfile Model ---
 class CustomerProfile(models.Model):
-    RETAILER = "retailer"
-    WHOLESALER = "wholesaler"
-    USER_TYPE_CHOICES = [(RETAILER, "Retailer"), (WHOLESALER, "Wholesaler")]
+    USER_TYPE_CHOICES = [("retailer", "Retailer"), ("wholesaler", "Wholesaler")]
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
 
-    # optional — copy of role for quick access/search (keeps profile self-contained)
+    # Business Identity
+    business_logo = models.ImageField(upload_to="logos/", blank=True, null=True)
+    about_us = models.TextField(blank=True, null=True)
+    year_established = models.PositiveIntegerField(blank=True, null=True)
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, blank=True, null=True)
 
-    # contact / business info
+    # Contact Info
     phone = models.CharField(max_length=30, blank=True, null=True)
+    whatsapp_number = models.CharField(max_length=30, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    instagram_link = models.URLField(blank=True, null=True)
+
+    # Address
     street_address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=120, blank=True, null=True)
     state = models.CharField(max_length=120, blank=True, null=True)
     pincode = models.CharField(max_length=20, blank=True, null=True)
 
-    # B2B / wholesale fields (optional)
-    min_order_qty = models.PositiveIntegerField(blank=True, null=True)
-    wholesale_discount_pct = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    credit_limit = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
-
-    # verification and documents
+    # Verification and Tax
     gstin = models.CharField(max_length=30, blank=True, null=True)
-    gst_doc = models.FileField(upload_to="docs/gst/", blank=True, null=True)   # optional file fields
-    trade_license = models.FileField(upload_to="docs/licenses/", blank=True, null=True)
     is_verified = models.BooleanField(default=False)
 
-    # flexible field for strange/rare attributes
-    extra = models.JSONField(blank=True, null=True)
-
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Customer Profile"
         verbose_name_plural = "Customer Profiles"
-        indexes = [
-            models.Index(fields=["user_type"]),
-            models.Index(fields=["is_verified"]),
-        ]
 
     def __str__(self):
-        return f"{self.user.get_full_name() or self.user.username} profile"
+        return f"{self.user.username} profile"
 
     @property
     def is_wholesaler(self):

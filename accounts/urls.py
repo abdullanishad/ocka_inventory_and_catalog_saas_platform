@@ -5,6 +5,8 @@ from .views import (
     signup,
     retailer_dashboard,
     wholesaler_dashboard,
+    profile, # <--- Import the new profile view
+    edit_profile
 )
 
 app_name = "accounts"
@@ -15,4 +17,9 @@ urlpatterns = [
     path("signup/", signup, name="signup"),
     path("retailer-dashboard/", retailer_dashboard, name="retailer_dashboard"),
     path("wholesaler-dashboard/", wholesaler_dashboard, name="wholesaler_dashboard"),
+    # === ADD THIS NEW URL PATTERN ===
+    path("profile/", profile, name="profile"),
+
+    path("profile/", profile, name="profile"),
+    path("profile/edit/", edit_profile, name="edit_profile"), # <-- Add this line
 ]

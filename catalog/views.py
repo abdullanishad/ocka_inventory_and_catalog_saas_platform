@@ -1,13 +1,20 @@
 import json
-from django.http import JsonResponse
+import csv
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
+from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper
+from django.db.models.functions import TruncDay
+from django.utils import timezone
+from datetime import timedelta
+from django.views.decorators.http import require_POST # <--- ADDED THIS IMPORT
+
 
 from accounts.models import Organization
 from orders.models import Order, OrderItem
-from .models import Product, Category, SizeStock, Size, ProductImage, CategorySize
+from .models import Product, Category, SizeStock, Size, ProductImage, CategorySize, MoqOption, Hero, TopBrand
 from .forms import ProductForm
 
 
@@ -22,12 +29,15 @@ def require_wholesaler(user) -> bool:
     return getattr(user, "role", None) == "wholesaler" and getattr(user, "organization", None)
 
 
-
-
-
-
 def product_list(request):
-    qs = Product.objects.select_related("owner", "category")
+    # Annotate each product with the sum of its size_stocks quantities
+    qs = Product.objects.annotate(
+        total_quantity=Sum('size_stocks__quantity')
+    ).select_related("owner", "category")
+
+    # Filter out products that are out of stock
+    # We use filter(total_quantity__gt=0) to only include products with stock > 0
+    qs = qs.filter(total_quantity__gt=0)
 
     wholesaler_id = request.GET.get("wholesaler")
     category_id = request.GET.get("category")
@@ -66,7 +76,6 @@ def product_detail(request, pk):
     return render(request, "catalog/product_detail.html", {"product": product, "related": related})
 
 
-
 # ---------------------------------------------------------------------
 # Wholesaler dashboard
 # ---------------------------------------------------------------------
@@ -96,7 +105,7 @@ def wholesaler_dashboard(request):
 
 
 # ---------------------------------------------------------------------
-# Product add/edit
+# Product add/edit (Updated)
 # ---------------------------------------------------------------------
 @login_required
 @user_passes_test(require_wholesaler)
@@ -105,50 +114,62 @@ def product_add(request):
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
-            product = form.save(commit=False)
-            product.owner = org
-            product.save()
+            with transaction.atomic():
+                product = form.save(commit=False)
+                product.owner = org
+                product.save()
 
-            # --- Save stock by size ---
-            for key, value in request.POST.items():
-                if key.startswith("size_") and value:
-                    try:
-                        qty = int(value)
-                        if qty > 0:
-                            size_id = int(key.split("_")[1])
-                            if Size.objects.filter(id=size_id).exists():
-                                SizeStock.objects.create(product=product, size_id=size_id, quantity=qty)
-                    except ValueError:
-                        pass
+                # Process and Save MOQ Options
+                moq_data = {}
+                for key, value in request.POST.items():
+                    if key.startswith('moq-') and value and int(value) > 0:
+                        parts = key.split('-')
+                        index, size_name = parts[1], parts[3]
+                        if index not in moq_data:
+                            moq_data[index] = {}
+                        moq_data[index][size_name] = int(value)
+                for config in moq_data.values():
+                    if any(v > 0 for v in config.values()):
+                        MoqOption.objects.create(product=product, configuration=config)
 
-            # --- Save images ---
-            new_images = request.FILES.getlist("new_images")
-            cover_choice = request.POST.get("cover_choice")
+                # Process and Save Stock by Size
+                for key, value in request.POST.items():
+                    if key.startswith("stock-size-") and value:
+                        try:
+                            if int(value) > 0:
+                                size_id = int(key.split("-")[2])
+                                SizeStock.objects.create(product=product, size_id=size_id, quantity=int(value))
+                        except (ValueError, IndexError):
+                            pass
+                
+                # Save images
+                new_images = request.FILES.getlist("new_images")
+                cover_choice = request.POST.get("cover_choice")
 
-            saved_images = []
-            for i, img in enumerate(new_images):
-                product_img = ProductImage.objects.create(product=product, image=img, position=i)
-                saved_images.append((f"new_{i}", product_img))
+                saved_images = []
+                for i, img in enumerate(new_images):
+                    product_img = ProductImage.objects.create(product=product, image=img, position=i)
+                    saved_images.append((f"new_{i}", product_img))
 
-            # --- Set cover image ---
-            if cover_choice:
-                if cover_choice.startswith("new_"):
-                    idx = int(cover_choice.split("_")[1])
-                    if 0 <= idx < len(saved_images):
-                        product.image = saved_images[idx][1].image  # set cover from ProductImage
+                # Set cover image
+                if cover_choice:
+                    if cover_choice.startswith("new_"):
+                        idx = int(cover_choice.split("_")[1])
+                        if 0 <= idx < len(saved_images):
+                            product.image = saved_images[idx][1].image  # set cover from ProductImage
+                            product.save()
+                    elif cover_choice.isdigit():
+                        try:
+                            chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
+                            product.image = chosen_img.image
+                            product.save()
+                        except ProductImage.DoesNotExist:
+                            pass
+                else:
+                    # Default: if no cover selected, use the first uploaded image
+                    if saved_images:
+                        product.image = saved_images[0][1].image
                         product.save()
-                elif cover_choice.isdigit():
-                    try:
-                        chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
-                        product.image = chosen_img.image
-                        product.save()
-                    except ProductImage.DoesNotExist:
-                        pass
-            else:
-                # Default: if no cover selected, use the first uploaded image
-                if saved_images:
-                    product.image = saved_images[0][1].image
-                    product.save()
 
             messages.success(request, "Product added successfully.")
             return redirect("catalog:wholesaler_dashboard")
@@ -159,8 +180,8 @@ def product_add(request):
         "form": form,
         "mode": "add",
         "product": Product(),
+        "existing_moqs_json": "[]",  # Pass an empty JSON array for new products
     })
-
 
 
 @login_required
@@ -172,59 +193,70 @@ def product_edit(request, pk):
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
-            product = form.save()
+            with transaction.atomic():
+                product = form.save()
 
-            # --- Update size stock ---
-            product.size_stocks.all().delete()
-            for key, value in request.POST.items():
-                if key.startswith("size_") and value:
-                    try:
-                        qty = int(value)
-                        if qty > 0:
-                            size_id = int(key.split("_")[1])
-                            if Size.objects.filter(id=size_id).exists():
-                                SizeStock.objects.create(product=product, size_id=size_id, quantity=qty)
-                    except ValueError:
-                        pass
+                # Process and Save MOQ Options
+                product.moq_options.all().delete()
+                moq_data = {}
+                for key, value in request.POST.items():
+                    if key.startswith('moq-') and value:
+                        parts = key.split('-')
+                        index, size_name = parts[1], parts[3]
+                        if index not in moq_data:
+                            moq_data[index] = {}
+                        moq_data[index][size_name] = int(value)
+                for config in moq_data.values():
+                    if any(v > 0 for v in config.values()):
+                        MoqOption.objects.create(product=product, configuration=config)
 
-            # --- Update images ---
-            new_images = request.FILES.getlist("new_images")
-            cover_choice = request.POST.get("cover_choice")
+                # Process and Save Stock by Size
+                product.size_stocks.all().delete()
+                for key, value in request.POST.items():
+                    if key.startswith("stock-size-") and value:
+                        try:
+                            if int(value) > 0:
+                                size_id = int(key.split("-")[2])
+                                SizeStock.objects.create(product=product, size_id=size_id, quantity=int(value))
+                        except (ValueError, IndexError):
+                            pass
 
-            for i, img in enumerate(new_images):
-                ProductImage.objects.create(product=product, image=img, position=i)
+                # Update images
+                new_images = request.FILES.getlist("new_images")
+                cover_choice = request.POST.get("cover_choice")
 
-            if cover_choice:
-                if cover_choice.startswith("new_"):
-                    idx = int(cover_choice.split("_")[1])
-                    if idx < len(new_images):
-                        product.image = new_images[idx]
-                        product.save()
-                elif cover_choice.isdigit():
-                    try:
-                        chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
-                        product.image = chosen_img.image
-                        product.save()
-                    except ProductImage.DoesNotExist:
-                        pass
+                for i, img in enumerate(new_images):
+                    ProductImage.objects.create(product=product, image=img, position=i)
+
+                if cover_choice:
+                    if cover_choice.startswith("new_"):
+                        idx = int(cover_choice.split("_")[1])
+                        if idx < len(new_images):
+                            product.image = new_images[idx]
+                            product.save()
+                    elif cover_choice.isdigit():
+                        try:
+                            chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
+                            product.image = chosen_img.image
+                            product.save()
+                        except ProductImage.DoesNotExist:
+                            pass
 
             messages.success(request, "Product updated successfully.")
             return redirect("catalog:wholesaler_dashboard")
     else:
         form = ProductForm(instance=product)
-
+    
+    # Prepare existing MOQ data as a JSON string for the template
+    existing_moqs = list(product.moq_options.all().values_list('configuration', flat=True))
+    
     return render(request, "catalog/product_form.html", {
         "form": form,
         "mode": "edit",
         "product": product,
+        "existing_moqs_json": json.dumps(existing_moqs),  # Convert to JSON string
     })
 
-
-# catalog/views.py
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect
-from .models import ProductImage
 
 @login_required
 def product_image_delete(request, pk):
@@ -252,7 +284,6 @@ def product_image_delete(request, pk):
     return redirect("catalog:product_edit", pk=img.product_id)
 
 
-
 # ---------------------------------------------------------------------
 # Category sizes (AJAX)
 # ---------------------------------------------------------------------
@@ -268,24 +299,18 @@ def category_sizes(request, category_id):
 # ---------------------------------------------------------------------
 @login_required
 @user_passes_test(require_wholesaler)
+@require_POST
 def delete_product(request, pk):
     org = request.user.organization
     product = get_object_or_404(Product, pk=pk, owner=org)
     product.delete()
+    messages.success(request, f"Product '{product.name}' has been removed.")
     return redirect("catalog:wholesaler_dashboard")
 
 
-# catalog/views.py (updated)
-from django.shortcuts import render
-from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper
-from django.db.models.functions import TruncDay
-from django.utils import timezone
-from datetime import timedelta
-
-from .models import Product
-from orders.models import Order  # you already have this
-# Note: we don't strictly need an OrderItem import because we aggregate through Order.items
-
+# ---------------------------------------------------------------------
+# Reports
+# ---------------------------------------------------------------------
 def wholesale_reports(request):
     org = getattr(request.user, "organization", None)
     if org is None:
@@ -420,9 +445,10 @@ def reports_export_csv(request):
 
     return response
 
-from django.shortcuts import render
-from .models import Hero, TopBrand
 
+# ---------------------------------------------------------------------
+# Home page
+# ---------------------------------------------------------------------
 def home(request):
     hero = Hero.objects.filter(is_active=True).order_by('order').first()
     if not hero:
@@ -432,11 +458,9 @@ def home(request):
     categories = Category.objects.all()
     wholesalers = Organization.objects.filter(org_type="wholesaler")
 
-
     return render(request, "catalog/home_public.html", {
         "hero": hero,
         "top_brands": top_brands,
         "categories": categories,
         "wholesalers": wholesalers,
     })
-
