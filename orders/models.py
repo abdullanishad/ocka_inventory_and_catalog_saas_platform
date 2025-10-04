@@ -8,10 +8,14 @@ from catalog.models import Product
 
 class Order(models.Model):
     class Status(models.TextChoices):
-        PENDING = "pending", "Pending"
-        CONFIRMED = "confirmed", "Confirmed"
-        SHIPPED = "shipped", "Shipped"
-        DELIVERED = "delivered", "Delivered"
+        PENDING = "PENDING", "Pending Confirmation"
+        REJECTED = "REJECTED", "Rejected"
+        AWAITING_PAYMENT = "AWAITING_PAYMENT", "Awaiting Payment"
+        PAID = "PAID", "Paid (Processing)" # Payment held in Escrow
+        SHIPPED = "SHIPPED", "Shipped"
+        DELIVERED = "DELIVERED", "Delivered" # Optional, if you track delivery
+        COMPLETED = "COMPLETED", "Completed" # Payment released to wholesaler
+        CANCELLED = "CANCELLED", "Cancelled"
 
     class PaymentMethod(models.TextChoices):
         COD = "cod", "COD"
@@ -45,9 +49,15 @@ class Order(models.Model):
     payment_status = models.CharField(
         max_length=20, default="Unpaid", help_text="Free text label for the table"
     )
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING
-    )
+    # === INCREASE MAX_LENGTH FOR STATUS FIELD ===
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING)
+
+
+    # Fields to store Razorpay IDs
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=200, blank=True, null=True)
+
 
     class Meta:
         ordering = ["-date", "-id"]
@@ -70,3 +80,14 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
+
+# === ADD THIS NEW MODEL ===
+class Shipment(models.Model):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="shipment")
+    tracking_id = models.CharField(max_length=100, blank=True, null=True)
+    courier_name = models.CharField(max_length=100, blank=True, null=True)
+    shipping_document = models.FileField(upload_to="shipping_docs/", blank=True, null=True)
+    shipped_on = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Shipment for Order {self.order.number}"

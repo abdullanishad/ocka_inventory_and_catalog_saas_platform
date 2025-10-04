@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Complete Payment{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6 text-center">
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h1 class="text-2xl font-bold text-gray-900">Final Step: Complete Your Payment</h1>
+        <p class="mt-2 text-gray-600">You are about to pay for Order #<span class="font-semibold">{{ order.number }}</span>.</p>
+
+        <div class="my-6 p-4 bg-gray-50 rounded-lg">
+            <div class="flex justify-between items-center">
+                <span class="text-gray-500">Total Amount:</span>
+                <span class="text-2xl font-bold text-gray-900">₹{{ order.total_value|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <button id="razorpay-button" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition">
+            Proceed to Pay
+        </button>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var options = {
+            "key": "{{ razorpay_key_id }}",
+            "amount": "{{ amount }}", // Amount in paise
+            "currency": "INR",
+            "name": "Ocka",
+            "description": "Payment for Order #{{ order.number }}",
+            "order_id": "{{ razorpay_order_id }}",
+            "handler": function (response){
+                // This function is called after a successful payment.
+                // It creates and submits a form to your `payment_success` view.
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{% url 'orders:payment_success' %}";
+                
+                var csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = '{{ csrf_token }}';
+                form.appendChild(csrfInput);
+
+                for (var key in response) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = response[key];
+                    form.appendChild(input);
+                }
+                document.body.appendChild(form);
+                form.submit();
+            },
+            "prefill": {
+                "name": "{{ order.retailer.name }}",
+                "email": "{{ order.retailer.users.first.email }}",
+                "contact": "{{ order.retailer.users.first.profile.phone }}"
+            },
+            "notes": {
+                "address": "Ocka B2B Marketplace"
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        
+        // Handle payment failures
+        rzp1.on('payment.failed', function (response){
+                alert("Payment Failed: " + response.error.description);
+                // Redirect to a failure page
+                window.location.href = "{% url 'orders:detail' order.pk %}"; 
+        });
+
+        // Automatically click the button to open the checkout
+        document.getElementById('razorpay-button').onclick = function(e){
+            rzp1.open();
+            e.preventDefault();
+        }
+        document.getElementById('razorpay-button').click();
+    });
+</script>
+{% endblock %}

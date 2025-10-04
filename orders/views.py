@@ -452,7 +452,7 @@ def ajax_checkout(request):
         logger.exception("Error during checkout")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
-# ----- STATUS UPDATES & ACTIONS -----
+
 @require_POST
 @login_required
 def update_status(request, pk):
@@ -461,7 +461,7 @@ def update_status(request, pk):
     """
     order = get_object_or_404(Order, pk=pk)
     
-    # Parse incoming status
+    # Parse incoming status (using improved parsing from code 2)
     new_status = None
     try:
         if request.content_type and "application/json" in request.content_type:
@@ -476,7 +476,7 @@ def update_status(request, pk):
     if not new_status:
         return JsonResponse({"success": False, "error": "Missing 'status' value"}, status=400)
 
-    # Case-insensitive status matching
+    # Case-insensitive status matching (using improved matching from code 2)
     new_status = str(new_status).strip()
     valid_keys_ci = {k.upper(): k for k, _ in Order.Status.choices}
     
@@ -486,43 +486,43 @@ def update_status(request, pk):
         allowed = [k for k, _ in Order.Status.choices]
         return JsonResponse({"success": False, "error": f"Invalid status. Allowed: {allowed}"}, status=400)
 
-    # Permission checks
-    user_org = getattr(request.user, "organization", None)
-    if not (request.user.is_staff or request.user.is_superuser):
-        if chosen_status in ("CONFIRMED", "SHIPPED") and user_org != order.wholesaler:
-            return JsonResponse({"success": False, "error": "Only wholesaler can confirm/ship this order"}, status=403)
-        if chosen_status in ("CANCELLED",) and user_org != order.retailer:
-            return JsonResponse({"success": False, "error": "Only retailer can cancel this order"}, status=403)
-
-    # Status transition validation (staff can bypass)
+    # === UPDATED TRANSITION RULES (from code 1) ===
     allowed_transitions = {
-        getattr(Order.Status, "PENDING", "PENDING"): {
-            getattr(Order.Status, "CONFIRMED", "CONFIRMED"), 
-            getattr(Order.Status, "CANCELLED", "CANCELLED")
-        },
-        getattr(Order.Status, "CONFIRMED", "CONFIRMED"): {
-            getattr(Order.Status, "SHIPPED", "SHIPPED")
-        },
-        getattr(Order.Status, "SHIPPED", "SHIPPED"): {
-            getattr(Order.Status, "DELIVERED", "DELIVERED")
-        },
+        Order.Status.PENDING: {Order.Status.AWAITING_PAYMENT, Order.Status.REJECTED},
+        Order.Status.AWAITING_PAYMENT: {Order.Status.PAID, Order.Status.CANCELLED},
+        Order.Status.PAID: {Order.Status.SHIPPED},
+        Order.Status.SHIPPED: {Order.Status.DELIVERED, Order.Status.COMPLETED},
+        Order.Status.DELIVERED: {Order.Status.COMPLETED},
     }
     
     current_status = order.status
-    if not (request.user.is_staff or request.user.is_superuser):
-        allowed_next = allowed_transitions.get(current_status, None)
-        if allowed_next is not None and chosen_status not in allowed_next:
+    user = request.user
+    user_org = getattr(user, "organization", None)
+
+    # Staff can bypass transition rules
+    if not (user.is_staff or user.is_superuser):
+        # Check if the transition is allowed
+        allowed_next_statuses = allowed_transitions.get(current_status, set())
+        if chosen_status not in allowed_next_statuses:
             return JsonResponse({"success": False, "error": f"Invalid status transition from {current_status} to {chosen_status}"}, status=400)
+
+        # Check permissions (enhanced permission logic from code 1)
+        if chosen_status in (Order.Status.AWAITING_PAYMENT, Order.Status.REJECTED, Order.Status.SHIPPED) and user_org != order.wholesaler:
+            return JsonResponse({"success": False, "error": "Only the wholesaler can perform this action."}, status=403)
+        if chosen_status == Order.Status.CANCELLED and user_org != order.retailer:
+            return JsonResponse({"success": False, "error": "Only the retailer can perform this action."}, status=403)
 
     # Perform update
     try:
         order.status = chosen_status
         order.save(update_fields=["status"])
+        # Add success message as in code 1
+        messages.success(request, f"Order status updated to {order.get_status_display()}.")
         return JsonResponse({"success": True, "status": chosen_status})
     except Exception as exc:
         logger.exception("Failed to update order %s status -> %s", pk, chosen_status)
-        return JsonResponse({"success": False, "error": "Server error while updating status"}, status=500)
-
+        return JsonResponse({"success": False, "error": "Server error while updating status."}, status=500)
+    
 @require_POST
 @login_required
 def cancel_order(request, pk):
@@ -551,3 +551,64 @@ def cancel_order(request, pk):
 
     messages.success(request, f"Order {order.number} has been cancelled.")
     return redirect("orders:detail", pk=order.pk)
+
+
+# orders/views.py
+import razorpay
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+
+# Initialize Razorpay client
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+@login_required
+def start_payment(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    
+    # Create a Razorpay Order
+    razorpay_order = client.order.create({
+        "amount": int(order.total_value * 100), # Amount in paise
+        "currency": "INR",
+        "receipt": order.number,
+    })
+    
+    order.razorpay_order_id = razorpay_order['id']
+    order.save()
+    
+    context = {
+        'order': order,
+        'razorpay_order_id': razorpay_order['id'],
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'amount': int(order.total_value * 100),
+    }
+    return render(request, 'orders/payment.html', context)
+
+@csrf_exempt
+def payment_success(request):
+    if request.method == "POST":
+        payload = request.POST
+        razorpay_order_id = payload.get('razorpay_order_id')
+        razorpay_payment_id = payload.get('razorpay_payment_id')
+        razorpay_signature = payload.get('razorpay_signature')
+
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+
+        try:
+            # Verify the payment signature
+            client.utility.verify_payment_signature(params_dict)
+            
+            # Find the order and update its status
+            order = Order.objects.get(razorpay_order_id=razorpay_order_id)
+            order.razorpay_payment_id = razorpay_payment_id
+            order.razorpay_signature = razorpay_signature
+            order.status = Order.Status.PAID # Payment is now held in Escrow
+            order.save()
+            
+            return render(request, 'orders/payment_success.html', {'order': order})
+        except Exception as e:
+            # Signature verification failed
+            return render(request, 'orders/payment_failed.html')
