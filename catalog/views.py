@@ -73,44 +73,46 @@ def product_detail(request, pk):
     return render(request, "catalog/product_detail.html", {"product": product, "related": related})
 
 # ---------------------------------------------------------------------
-# Wholesaler Views (CORRECTED)
+# Wholesaler Dashboard (CORRECTED)
 # ---------------------------------------------------------------------
 @login_required
 @user_passes_test(require_wholesaler)
 def wholesaler_dashboard(request):
     org = request.user.organization
     
-    # Base queryset for all active products
+    # Base queryset for all active products for the wholesaler
     all_products_qs = Product.objects.filter(owner=org, is_active=True)
 
-    # Annotate with total_stock to calculate in the DB. This is the fix.
+    # Annotate with a non-conflicting name: 'annotated_stock'
     products_with_stock = all_products_qs.annotate(
-        total_stock=Coalesce(Sum('size_stocks__quantity'), Value(0))
+        annotated_stock=Coalesce(Sum('size_stocks__quantity'), Value(0))
     ).order_by("name")
 
-    # Handle filtering based on the annotated total_stock
+    # Handle filtering based on the annotated stock
     filter_param = request.GET.get("filter")
     if filter_param == "out":
-        products_qs = products_with_stock.filter(total_stock=0)
+        products_qs = products_with_stock.filter(annotated_stock=0)
     elif filter_param == "low":
-        products_qs = products_with_stock.filter(total_stock__gt=0, total_stock__lte=5)
+        products_qs = products_with_stock.filter(annotated_stock__gt=0, annotated_stock__lte=5)
     else:
         products_qs = products_with_stock
 
     # Calculate stats efficiently from the annotated queryset
     total_products = all_products_qs.count()
-    out_of_stock_count = products_with_stock.filter(total_stock=0).count()
-    low_stock_count = products_with_stock.filter(total_stock__gt=0, total_stock__lte=5).count()
+    out_of_stock_count = products_with_stock.filter(annotated_stock=0).count()
+    low_stock_count = products_with_stock.filter(annotated_stock__gt=0, annotated_stock__lte=5).count()
 
     context = {
         "products": products_qs,
         "total_products": total_products,
-        "out_of_stock_count": out_of_stock_count,
-        "low_stock_count": low_stock_count,
+        # Pass the correct count variables to the template
+        "out_of_stock": out_of_stock_count,
+        "low_stock": low_stock_count,
     }
     return render(request, "catalog/wholesaler_dashboard.html", context)
 
 
+# ... (The rest of your views.py file remains the same)
 
 # ---------------------------------------------------------------------
 # Product add/edit (Updated)
