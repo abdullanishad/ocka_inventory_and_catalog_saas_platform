@@ -61,6 +61,12 @@ class CustomerProfile(models.Model):
     gstin = models.CharField(max_length=30, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
 
+     # === ADD THIS NEW SECTION FOR BANK DETAILS ===
+    bank_account_holder_name = models.CharField(max_length=100, blank=True, null=True)
+    bank_name = models.CharField(max_length=100, blank=True, null=True)
+    bank_account_number = models.CharField(max_length=30, blank=True, null=True)
+    bank_ifsc_code = models.CharField(max_length=20, blank=True, null=True)
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,3 +1,5 @@
+# catalog/views.py
+
 import json
 import csv
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
@@ -5,14 +7,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
-from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper
-from django.db.models.functions import TruncDay
+from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper, Prefetch, Avg, Value, DecimalField
+from django.db.models.functions import TruncDay, Coalesce
 from django.utils import timezone
 from datetime import timedelta
-from django.views.decorators.http import require_POST # <--- ADDED THIS IMPORT
+from django.views.decorators.http import require_POST
 
-
-from accounts.models import Organization
+from accounts.models import Organization, CustomerProfile
 from orders.models import Order, OrderItem
 from .models import Product, Category, SizeStock, Size, ProductImage, CategorySize, MoqOption, Hero, TopBrand
 from .forms import ProductForm
@@ -22,22 +23,15 @@ from .forms import ProductForm
 # Helpers
 # ---------------------------------------------------------------------
 def require_wholesaler(user) -> bool:
-    """
-    Returns True only if the user is a wholesaler
-    and linked to an organization.
-    """
     return getattr(user, "role", None) == "wholesaler" and getattr(user, "organization", None)
 
-
+# ---------------------------------------------------------------------
+# Public/Retailer Views
+# ---------------------------------------------------------------------
 def product_list(request):
-    # Annotate each product with the sum of its size_stocks quantities
-    qs = Product.objects.annotate(
-        total_quantity=Sum('size_stocks__quantity')
-    ).select_related("owner", "category")
-
-    # Filter out products that are out of stock
-    # We use filter(total_quantity__gt=0) to only include products with stock > 0
-    qs = qs.filter(total_quantity__gt=0)
+    qs = Product.objects.filter(is_active=True).annotate(
+        total_quantity=Coalesce(Sum('size_stocks__quantity'), Value(0))
+    ).filter(total_quantity__gt=0).select_related("owner", "category")
 
     wholesaler_id = request.GET.get("wholesaler")
     category_id = request.GET.get("category")
@@ -45,7 +39,7 @@ def product_list(request):
 
     if wholesaler_id:
         try:
-            qs = qs.filter(owner_id=int(wholesaler_id), owner__org_type="wholesaler")
+            qs = qs.filter(owner_id=int(wholesaler_id))
         except (TypeError, ValueError):
             pass
 
@@ -62,46 +56,60 @@ def product_list(request):
     }
     qs = qs.order_by(sort_map.get(sort, "-id"))
 
+    wholesalers = Organization.objects.filter(org_type="wholesaler").prefetch_related(
+        Prefetch('users__profile', to_attr='user_profile')
+    )[:20]
+
     context = {
         "products": qs,
-        "wholesalers": Organization.objects.filter(org_type="wholesaler")[:20],
+        "wholesalers": wholesalers,
         "categories": Category.objects.all(),
     }
     return render(request, "catalog/product_list.html", context)
 
-
 def product_detail(request, pk):
-    product = get_object_or_404(Product.objects.select_related("category", "owner"), pk=pk)
-    related = Product.objects.filter(category=product.category).exclude(pk=product.pk)[:4]
+    product = get_object_or_404(Product.objects.select_related("category", "owner"), pk=pk, is_active=True)
+    related = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:4]
     return render(request, "catalog/product_detail.html", {"product": product, "related": related})
 
-
 # ---------------------------------------------------------------------
-# Wholesaler dashboard
+# Wholesaler Views (CORRECTED)
 # ---------------------------------------------------------------------
 @login_required
 @user_passes_test(require_wholesaler)
 def wholesaler_dashboard(request):
     org = request.user.organization
-    qs = Product.objects.filter(owner=org).order_by("name")
+    
+    # Base queryset for all active products
+    all_products_qs = Product.objects.filter(owner=org, is_active=True)
 
-    total_products = qs.count()
-    out_of_stock = sum(1 for p in qs if p.total_stock == 0)
-    low_stock = sum(1 for p in qs if 0 < p.total_stock <= 5)
+    # Annotate with total_stock to calculate in the DB. This is the fix.
+    products_with_stock = all_products_qs.annotate(
+        total_stock=Coalesce(Sum('size_stocks__quantity'), Value(0))
+    ).order_by("name")
 
+    # Handle filtering based on the annotated total_stock
     filter_param = request.GET.get("filter")
     if filter_param == "out":
-        qs = [p for p in qs if p.total_stock == 0]
+        products_qs = products_with_stock.filter(total_stock=0)
     elif filter_param == "low":
-        qs = [p for p in qs if 0 < p.total_stock <= 5]
+        products_qs = products_with_stock.filter(total_stock__gt=0, total_stock__lte=5)
+    else:
+        products_qs = products_with_stock
+
+    # Calculate stats efficiently from the annotated queryset
+    total_products = all_products_qs.count()
+    out_of_stock_count = products_with_stock.filter(total_stock=0).count()
+    low_stock_count = products_with_stock.filter(total_stock__gt=0, total_stock__lte=5).count()
 
     context = {
-        "products": qs,
+        "products": products_qs,
         "total_products": total_products,
-        "out_of_stock": out_of_stock,
-        "low_stock": low_stock,
+        "out_of_stock_count": out_of_stock_count,
+        "low_stock_count": low_stock_count,
     }
     return render(request, "catalog/wholesaler_dashboard.html", context)
+
 
 
 # ---------------------------------------------------------------------
@@ -303,106 +311,66 @@ def category_sizes(request, category_id):
 def delete_product(request, pk):
     org = request.user.organization
     product = get_object_or_404(Product, pk=pk, owner=org)
-    product.delete()
-    messages.success(request, f"Product '{product.name}' has been removed.")
+
+    # === UPDATE THE LOGIC HERE ===
+    # Instead of deleting, we set it to inactive
+    product.is_active = False
+    product.save()
+    
+    messages.success(request, f"Product '{product.name}' has been archived and is no longer visible to retailers.")
     return redirect("catalog:wholesaler_dashboard")
 
-
-# ---------------------------------------------------------------------
-# Reports
-# ---------------------------------------------------------------------
+# ==========================================================
+#   REPORTS VIEW (CORRECTED)
+# ==========================================================
+@login_required
+@user_passes_test(require_wholesaler)
 def wholesale_reports(request):
-    org = getattr(request.user, "organization", None)
-    if org is None:
-        return render(request, "reports/no_org.html")
-
+    org = request.user.organization
     today = timezone.now().date()
     start_date = today - timedelta(days=29)
 
-    products_qs = Product.objects.filter(owner=org).select_related("category")
-
-    # Use Order.items related name (as error suggests)
-    # Total sales value for DELIVERED orders for this wholesaler's products
-    revenue_expr = ExpressionWrapper(F("items__quantity") * F("items__price"), output_field=FloatField())
-
-    total_sales_agg = Order.objects.filter(
-        items__product__owner=org,
-        status="DELIVERED"
-    ).aggregate(total_sales=Sum(revenue_expr))
-
-    total_sales_value = total_sales_agg["total_sales"] or 0.0
-
-    # total items sold
-    total_items_agg = Order.objects.filter(
-        items__product__owner=org,
-        status="DELIVERED"
-    ).aggregate(total_qty=Sum("items__quantity"))
-    total_items_sold = total_items_agg["total_qty"] or 0
-
-    # total orders (any status) containing this wholesaler's products
-    total_orders = Order.objects.filter(items__product__owner=org).distinct().count()
-
-    # Average order value — compute from total_value & count (use total_value field)
-    delivered_orders_qs = Order.objects.filter(status="DELIVERED", items__product__owner=org).distinct()
-    agg = delivered_orders_qs.aggregate(total=Sum("total_value"), count=Count("id"))
-    total_delivered_value = agg["total"] or 0
-    delivered_count = agg["count"] or 0
-    avg_order_value = (total_delivered_value / delivered_count) if delivered_count else 0
-
-    # Best sellers by qty & revenue
-    best_sellers = (
-        Order.objects.filter(items__product__owner=org)
-        .values("items__product__id", "items__product__name", "items__product__sku")
-        .annotate(qty_sold=Sum("items__quantity"),
-                  revenue=Sum(revenue_expr))
-        .order_by("-qty_sold")[:10]
+    orders_qs = Order.objects.filter(wholesaler=org, date__range=[start_date, today])
+    delivered_orders = orders_qs.filter(status=Order.Status.DELIVERED)
+    
+    # === FIX IS HERE: Added output_field to Coalesce for Decimal fields ===
+    key_metrics = delivered_orders.aggregate(
+        total_sales=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
+        total_items=Coalesce(Sum('items_count'), Value(0)),
+        avg_order_value=Coalesce(Avg('total_value'), Value(0), output_field=DecimalField())
     )
 
-    # Orders by status
-    orders_by_status = (
-        Order.objects.filter(items__product__owner=org)
-        .values("status")
-        .annotate(count=Count("id"))
-        .order_by()
-    )
+    best_sellers = OrderItem.objects.filter(
+        order__in=delivered_orders
+    ).values(
+        'product__name', 'product__sku'
+    ).annotate(
+        qty_sold=Sum('quantity'),
+        revenue=Sum(F('quantity') * F('price'))
+    ).order_by('-revenue')[:5]
 
-    # Sales trend by day (last 30 days). Use Order.date field (as your model shows).
-    trend = (
-        Order.objects.filter(items__product__owner=org, date__gte=start_date)
-        .annotate(day=TruncDay("date"))
-        .values("day")
-        .annotate(day_revenue=Sum(revenue_expr))
-        .order_by("day")
+    inventory_qs = Product.objects.filter(owner=org, is_active=True).annotate(
+        total_stock=Coalesce(Sum('size_stocks__quantity'), Value(0))
     )
-
-    # Inventory snapshot using product.total_stock property
-    total_stock = sum(p.total_stock for p in products_qs)
-    low_stock_products = [p for p in products_qs if p.total_stock <= 5]
-    out_of_stock = [p for p in products_qs if p.total_stock == 0]
-
-    # Top customers
-    top_customers = (
-        Order.objects.filter(items__product__owner=org)
-        .values("retailer__id", "retailer__name")   # looks like your Order has retailer field
-        .annotate(revenue=Sum(revenue_expr), orders_count=Count("id", distinct=True))
-        .order_by("-revenue")[:10]
+    
+    inventory_snapshot = inventory_qs.aggregate(
+        total_stock_units=Coalesce(Sum('total_stock'), Value(0))
     )
+    low_stock_products = inventory_qs.filter(total_stock__gt=0, total_stock__lte=5)
+    
+    orders_by_status = orders_qs.values('status').annotate(count=Count('id')).order_by('-count')
 
     context = {
-        "total_sales_value": total_sales_value,
-        "total_items_sold": total_items_sold,
-        "total_orders": total_orders,
-        "avg_order_value": avg_order_value,
-        "best_sellers": best_sellers,
-        "orders_by_status": orders_by_status,
-        "trend": trend,
-        "products_stock": products_qs,
-        "total_stock": total_stock,
-        "low_stock_products": low_stock_products,
-        "out_of_stock": out_of_stock,
-        "top_customers": top_customers,
         "start_date": start_date,
         "end_date": today,
+        "total_sales_value": key_metrics['total_sales'],
+        "total_orders": orders_qs.count(),
+        "total_items_sold": key_metrics['total_items'],
+        "avg_order_value": key_metrics['avg_order_value'],
+        "best_sellers": best_sellers,
+        "total_stock": inventory_snapshot['total_stock_units'],
+        "low_stock_products": low_stock_products,
+        "orders_by_status": orders_by_status,
     }
     return render(request, "catalog/reports.html", context)
 

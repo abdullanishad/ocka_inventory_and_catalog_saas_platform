@@ -117,6 +117,8 @@ class Product(models.Model):
     # === UPDATED THIS FIELD ===
     fabrics = models.ManyToManyField('Fabric', blank=True, related_name="products")
     colors = models.ManyToManyField(Color, blank=True, related_name="products")
+    is_active = models.BooleanField(default=True)
+
 
     def primary_image_url(self):
         if self.image:

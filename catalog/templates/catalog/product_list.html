@@ -13,49 +13,53 @@
   <!-- <section class="mt-2"> -->
     <!-- <h2 class="text-lg font-semibold text-gray-900">Shop by Wholesalers</h2> -->
 
-    <!-- Story rail -->
-    <div
-      id="wh-rail"
-      class="mt-3 flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 pt-2 select-none"
-    >
-      {# ALL #}
-      <!-- {% with q=request.GET.copy %}{% if q.wholesaler %}{% templatetag openvariable %} q.pop 'wholesaler' True {% templatetag closevariable %}{% endif %}{% endwith %} -->
-      <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}"
-         class="flex flex-col items-center gap-1 snap-start shrink-0">
-        <span class="grid place-items-center rounded-full p-[2px]
-                     bg-gradient-to-br from-[#2E65FF] to-[#5B8CFF]">
-          <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white">
-            <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
-                         bg-[#2E65FF] text-white font-bold text-sm md:text-base">All</span>
-          </span>
-        </span>
-        <span class="text-[13px] text-gray-600">All</span>
-      </a>
-
-      {# Wholesaler pills #}
-      {% for w in wholesalers %}
-  <a href="?wholesaler={{ w.id }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}"
+   <!-- Story rail -->
+<div
+  id="wh-rail"
+  class="mt-3 flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 pt-2 select-none"
+>
+  {# ALL #}
+  <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}"
      class="flex flex-col items-center gap-1 snap-start shrink-0">
-     
     <span class="grid place-items-center rounded-full p-[2px]
-                 {% if request.GET.wholesaler|stringformat:'s' == w.id|stringformat:'s' %}
-                   ring-4 ring-blue-500/40 bg-gradient-to-br from-blue-500 to-purple-500
-                 {% else %}
-                   bg-gradient-to-br from-pink-400 to-purple-400
-                 {% endif %}">
+                 bg-gradient-to-br from-[#2E65FF] to-[#5B8CFF]">
       <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white">
         <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
-                     bg-gradient-to-br from-pink-400 to-purple-400 text-white font-bold text-sm md:text-base">
-          {{ w.name|cut:" "|slice:":2"|upper }}
-        </span>
+                     bg-[#2E65FF] text-white font-bold text-sm md:text-base">All</span>
       </span>
     </span>
-    <span class="text-[13px] text-gray-600 truncate max-w-20 md:max-w-28">{{ w.city|default:w.name }}</span>
+    <span class="text-[13px] text-gray-600">All</span>
   </a>
-{% endfor %}
 
-    </div>
-  </section>
+  {# Wholesaler pills (Updated) #}
+  {% for w in wholesalers %}
+    {% with profile=w.users.first.profile %}
+    <a href="?wholesaler={{ w.id }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}"
+       class="flex flex-col items-center gap-1 snap-start shrink-0">
+      
+      <span class="grid place-items-center rounded-full p-[2px]
+                   {% if request.GET.wholesaler|stringformat:'s' == w.id|stringformat:'s' %}
+                     ring-4 ring-blue-500/40 bg-gradient-to-br from-blue-500 to-purple-500
+                   {% else %}
+                     bg-gradient-to-br from-pink-400 to-purple-400
+                   {% endif %}">
+        <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white overflow-hidden">
+          {% if profile and profile.business_logo %}
+            <img src="{{ profile.business_logo.url }}" alt="{{ w.name }} logo" class="w-full h-full object-cover">
+          {% else %}
+            <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
+                         bg-gradient-to-br from-pink-400 to-purple-400 text-white font-bold text-sm md:text-base">
+              {{ w.name|cut:" "|slice:":2"|upper }}
+            </span>
+          {% endif %}
+        </span>
+      </span>
+      <span class="text-[13px] text-gray-600 truncate max-w-20 md:max-w-28">{{ profile.User|default:w.name }}</span>
+    </a>
+    {% endwith %}
+  {% endfor %}
+
+</div>
 <!-- Filters -->
 <section class="mt-4 grid grid-cols-2 gap-3 md:gap-6">
   <!-- Category -->

@@ -1,56 +1,169 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Account{% endblock %}
+
 {% block content %}
-<div class="max-w-md mx-auto bg-white shadow-md rounded p-6">
-  <h2 class="text-2xl font-bold mb-4">Sign Up</h2>
-
-  <form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-
-    <div class="mb-4">
-      <label class="block text-gray-700">Username</label>
-      {{ form.username }}
-      {% for error in form.username.errors %}
-        <p class="text-red-500 text-sm">{{ error }}</p>
-      {% endfor %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6">
+    <div class="text-center">
+        <h2 class="text-3xl font-extrabold text-gray-900">Create Account</h2>
+        <p class="mt-2 text-sm text-gray-600">Start your business journey with us</p>
     </div>
 
-    <div class="mb-4">
-      <label class="block text-gray-700">Email</label>
-      {{ form.email }}
-      {% for error in form.email.errors %}
-        <p class="text-red-500 text-sm">{{ error }}</p>
-      {% endfor %}
-    </div>
+    <form class="mt-8 space-y-6" method="post" novalidate>
+        {% csrf_token %}
 
-    <div class="mb-4">
-      <label class="block text-gray-700">Role</label>
-      {{ form.role }}
-      {% for error in form.role.errors %}
-        <p class="text-red-500 text-sm">{{ error }}</p>
-      {% endfor %}
-    </div>
+        {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-sm text-red-700 p-3 rounded-md">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-    <div class="mb-4">
-      <label class="block text-gray-700">Password</label>
-      {{ form.password1 }}
-      {% for error in form.password1.errors %}
-        <p class="text-red-500 text-sm">{{ error }}</p>
-      {% endfor %}
-    </div>
+        <div>
+            <label for="id_business_name" class="block text-sm font-medium text-gray-700">Business Name</label>
+            <div class="mt-1">
+                {{ form.business_name }}
+                {% for error in form.business_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+            </div>
+        </div>
 
-    <div class="mb-4">
-      <label class="block text-gray-700">Confirm Password</label>
-      {{ form.password2 }}
-      {% for error in form.password2.errors %}
-        <p class="text-red-500 text-sm">{{ error }}</p>
-      {% endfor %}
-    </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Business Type</label>
+            <div id="business-type-selector" class="mt-1 grid grid-cols-2 gap-2 border border-gray-300 rounded-md p-1">
+                <button type="button" data-value="retailer" class="business-type-btn bg-black text-white px-3 py-2 rounded text-sm font-medium">Retailer</button>
+                <button type="button" data-value="wholesaler" class="business-type-btn bg-white text-gray-700 px-3 py-2 rounded text-sm font-medium">Wholesaler</button>
+                {{ form.business_type }}
+            </div>
+            {% for error in form.business_type.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        
+        <div>
+            <label for="id_phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
+            <div class="mt-1 flex">
+                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">+91</span>
+                {{ form.phone_number }}
+            </div>
+            {% for error in form.phone_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
 
-    <button type="submit"
-      class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
-      Sign Up
-    </button>
-  </form>
+        <div>
+            <label for="id_email" class="block text-sm font-medium text-gray-700">Email Address</label>
+            <div class="mt-1">{{ form.email }}</div>
+            {% for error in form.email.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label for="id_password" class="block text-sm font-medium text-gray-700">Password</label>
+            <div class="mt-1">{{ form.password }}</div>
+            {% for error in form.password.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        
+        <div>
+            <label for="id_password_confirm" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <div class="mt-1">{{ form.password_confirm }}</div>
+            {% for error in form.password_confirm.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label for="id_shipping_address" class="block text-sm font-medium text-gray-700">Shipping Address</label>
+            <div class="mt-1">{{ form.shipping_address }}</div>
+            {% for error in form.shipping_address.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="space-y-4 border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-900">Bank Details</h3>
+            <div>
+                <label for="id_bank_account_holder_name" class="block text-sm font-medium text-gray-700">Account Holder Name</label>
+                <div class="mt-1">{{ form.bank_account_holder_name }}</div>
+                {% for error in form.bank_account_holder_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="id_bank_account_number" class="block text-sm font-medium text-gray-700">Account Number</label>
+                <div class="mt-1">{{ form.bank_account_number }}</div>
+                {% for error in form.bank_account_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+                <label for="id_ifsc_code" class="block text-sm font-medium text-gray-700">IFSC Code</label>
+                <div class="mt-1">{{ form.bank_ifsc_code }}</div>
+                {% for error in form.bank_ifsc_code.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="flex items-center">
+            {{ form.terms }}
+            <label for="id_terms" class="ml-2 block text-sm text-gray-900">I agree to the <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Terms of Service</a> and <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Privacy Policy</a></label>
+        </div>
+        {% for error in form.terms.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+
+        <div>
+            <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                Create Account
+            </button>
+        </div>
+    </form>
+
+    <div class="mt-6 text-center">
+        <p class="text-sm">
+            Already have an account?
+            <a href="{% url 'accounts:login' %}" class="font-medium text-blue-600 hover:text-blue-500">Login to Your Account</a>
+        </p>
+    </div>
 </div>
+
+<style>
+    /* Hide the default radio buttons */
+    #id_business_type { display: none; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Logic for the custom business type buttons
+    const selector = document.getElementById('business-type-selector');
+    const buttons = selector.querySelectorAll('.business-type-btn');
+    const hiddenRadios = document.querySelectorAll('input[name="business_type"]');
+    
+    // Set initial state
+    const initialValue = document.querySelector('input[name="business_type"]:checked')?.value || 'retailer';
+    document.querySelector(`input[value="${initialValue}"]`).checked = true;
+    updateButtons(initialValue);
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const value = this.dataset.value;
+            // Select the corresponding hidden radio button
+            document.querySelector(`input[value="${value}"]`).checked = true;
+            updateButtons(value);
+        });
+    });
+
+    function updateButtons(selectedValue) {
+        buttons.forEach(button => {
+            if (button.dataset.value === selectedValue) {
+                button.classList.add('bg-black', 'text-white');
+                button.classList.remove('bg-white', 'text-gray-700');
+            } else {
+                button.classList.add('bg-white', 'text-gray-700');
+                button.classList.remove('bg-black', 'text-white');
+            }
+        });
+    }
+
+    // --- Add Styling to Form Fields ---
+    const fields = [
+        'business_name', 'phone_number', 'email', 'password', 'password_confirm',
+        'shipping_address', 'bank_account_holder_name', 'bank_account_number', 'bank_ifsc_code'
+    ];
+    fields.forEach(fieldName => {
+        const field = document.getElementById(`id_${fieldName}`);
+        if (field) {
+            field.classList.add('appearance-none', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'placeholder-gray-400', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm');
+            if (fieldName === 'phone_number') {
+                field.classList.remove('rounded-l-md');
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

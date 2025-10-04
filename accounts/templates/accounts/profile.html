@@ -95,6 +95,29 @@
           </div>
         </dl>
       </div>
+
+      <!-- Bank Details section (already present from Code 1) -->
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Bank Details</h3>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Account Holder Name</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.bank_account_holder_name|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Bank Name</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.bank_name|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Account Number</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.bank_account_number|default:"Not provided" }}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">IFSC Code</dt>
+            <dd class="text-gray-800 font-medium">{{ user.profile.bank_ifsc_code|default:"Not provided" }}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
   </div>
 

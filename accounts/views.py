@@ -3,8 +3,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm
-from .models import Organization
+from django.contrib import messages
+
+# Consolidate all form and model imports here
+from .forms import ComprehensiveSignupForm, CustomerProfileForm
+from .models import Organization, CustomerProfile
 from catalog.models import Category
 
 
@@ -18,7 +21,6 @@ class CustomLoginView(LoginView):
         if redirect_url:
             return redirect_url
 
-
         user = self.request.user
         if user.role == "retailer":
             return "/catalog/"
@@ -28,46 +30,26 @@ class CustomLoginView(LoginView):
 
 
 def signup(request):
-    # redirect if already logged in
     if request.user.is_authenticated:
-        if request.user.role == "retailer":
-            return redirect("catalog:product_list")
-        elif request.user.role == "wholesaler":
-            return redirect("catalog:wholesaler_dashboard")
-        else:
-            return redirect("/")  # fallback
+        return redirect("home") # Redirect logged-in users away
 
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
+        form = ComprehensiveSignupForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-
-            # ✅ create or assign organization automatically
-            if user.role == "wholesaler":
-                org, _ = Organization.objects.get_or_create(
-                    name=f"{user.username}", org_type="wholesaler"
-                )
-            else:  # default retailer
-                org, _ = Organization.objects.get_or_create(
-                    name=f"{user.username}", org_type="retailer"
-                )
-
-            user.organization = org
-            user.save()
-
+            user = form.save()
             login(request, user)
-
-            if user.role == "retailer":
-                return redirect("catalog:product_list")
-            elif user.role == "wholesaler":
+            messages.success(request, "Welcome! Your account has been created successfully.")
+            # Redirect to their dashboard or profile page
+            if user.role == "wholesaler":
                 return redirect("catalog:wholesaler_dashboard")
+            else:
+                return redirect("catalog:product_list")
     else:
-        form = CustomUserCreationForm()
+        form = ComprehensiveSignupForm()
 
     return render(request, "accounts/signup.html", {"form": form})
 
 
-from .models import Organization
 @login_required
 def retailer_dashboard(request):
     wholesalers = Organization.objects.filter(org_type="wholesaler")
@@ -88,16 +70,7 @@ def wholesaler_dashboard(request):
 def profile(request):
     return render(request, "accounts/profile.html")
 
-# accounts/views.py
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from .forms import CustomUserCreationForm, CustomerProfileForm
-from .models import CustomerProfile
 
-# ... (your other views like CustomLoginView, signup, etc. remain the same) ...
-
-# === ADD THIS NEW VIEW ===
 @login_required
 def edit_profile(request):
     # Get the user's profile, or create one if it doesn't exist

@@ -91,6 +91,32 @@
             {{ form.pincode }}
             {% for error in form.pincode.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
           </div>
+
+          <hr class="md:col-span-2 my-4">
+
+          <div class="md:col-span-2">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Bank Account Details</h3>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Account Holder Name</label>
+            {{ form.bank_account_holder_name }}
+            {% for error in form.bank_account_holder_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Bank Name</label>
+            {{ form.bank_name }}
+            {% for error in form.bank_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">Account Number</label>
+            {{ form.bank_account_number }}
+            {% for error in form.bank_account_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-700">IFSC Code</label>
+            {{ form.bank_ifsc_code }}
+            {% for error in form.bank_ifsc_code.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+          </div>
         </div>
       </div>
       
