@@ -27,4 +27,10 @@ urlpatterns = [
     path('<int:pk>/start-payment/', views.start_payment, name='start_payment'),
     path('payment-success/', views.payment_success, name='payment_success'),
 
+    # --- ADD THIS NEW URL PATTERN ---
+    path('<int:pk>/add-shipment/', views.add_shipment, name='add_shipment'),
+
+        # --- ADD THIS NEW URL ---
+    path('<int:pk>/confirm-shipping-gst/', views.add_shipping_and_gst, name='add_shipping_and_gst'),
+
 ]

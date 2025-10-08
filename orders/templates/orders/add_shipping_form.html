@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Add Shipping for {{ order.number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-12 px-4 sm:px-6">
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h1 class="text-2xl font-bold text-gray-900">Confirm Order & Add Costs</h1>
+        <p class="mt-2 text-sm text-gray-600">For Order #<span class="font-semibold">{{ order.number }}</span></p>
+
+        <div class="mt-6 border-t border-b py-4 space-y-2">
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Retailer</span> <span class="font-medium">{{ order.retailer.name }}</span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Shipping To</span> <span class="font-medium">{{ order.retailer.users.first.profile.city }}, {{ order.retailer.users.first.profile.state }}</span></div>
+            <div class="flex justify-between text-sm"><span class="text-gray-600">Order Subtotal</span> <span class="font-medium">₹{{ order.subtotal|floatformat:2 }}</span></div>
+        </div>
+
+        <form method="post" class="mt-6 space-y-6">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="id_shipping_charge" class="block text-sm font-medium text-gray-700">Shipping Charge (₹)</label>
+                    <input type="number" name="shipping_charge" step="0.01" required class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="e.g., 150.00">
+                </div>
+                
+                {# --- ADD THIS NEW FIELD --- #}
+                <div>
+                    <label for="id_gst_amount" class="block text-sm font-medium text-gray-700">GST Amount (₹)</label>
+                    <input type="number" name="gst_amount" step="0.01" required class="mt-1 w-full border rounded-lg px-3 py-2" placeholder="e.g., 270.00">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <a href="{% url 'orders:detail' order.pk %}" class="px-4 py-2 rounded-lg border font-medium text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+                    Confirm and Request Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

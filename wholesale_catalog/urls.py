@@ -65,6 +65,27 @@ def r2_debug(request):
 
     return HttpResponse("\n".join(out), content_type="text/plain")
 
+# --- ADD THIS NEW FUNCTION ---
+def debug_keys_view(request):
+    from django.conf import settings
+    key_id = settings.RAZORPAY_KEY_ID
+    key_secret = settings.RAZORPAY_KEY_SECRET
+
+    # Obscure the secret for security, but show enough to know if it's there
+    secret_display = f"{key_secret[:4]}...{key_secret[-4:]}" if key_secret else "None"
+
+    html = f"""
+    <h1>Django Settings Debug</h1>
+    <p>This is what the Django application sees for your Razorpay keys.</p>
+    <hr>
+    <p><b>RAZORPAY_KEY_ID:</b> <code>{key_id}</code></p>
+    <p><b>RAZORPAY_KEY_SECRET:</b> <code>{secret_display}</code></p>
+    <hr>
+    <p>If you see 'None' for either value, your .env file is not being loaded correctly.</p>
+    """
+    return HttpResponse(html)
+# --- END OF NEW FUNCTION ---
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.home, name="home"),
@@ -79,4 +100,9 @@ if settings.DEBUG:
 # 👇 add this AFTER urlpatterns
 urlpatterns += [
     path("r2-live-debug-9f3b8a/", r2_debug),
+]
+
+urlpatterns += [
+    path("r2-live-debug-9f3b8a/", r2_debug),
+    path("debug-keys/", debug_keys_view), # <-- ADD THIS LINE
 ]

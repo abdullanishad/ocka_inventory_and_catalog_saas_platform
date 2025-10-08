@@ -2,6 +2,10 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+# --- ADD THESE TWO LINES ---
+from dotenv import load_dotenv
+load_dotenv()
+# --- END OF ADDITION ---
 
 
 def main():

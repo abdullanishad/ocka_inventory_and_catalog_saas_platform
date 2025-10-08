@@ -1,7 +1,21 @@
 # orders/admin.py
 from django.contrib import admin, messages
-from .models import Order
-from .services import release_payment_to_wholesaler # <-- Import the function
+from .models import Order, OrderItem
+from .services import release_payment_to_wholesaler
+
+# --- 1. DEFINE THE INLINE FOR ORDER ITEMS ---
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    # Define the fields to display for each item
+    fields = ('product', 'quantity', 'price', 'pack_details')
+    # Make the fields read-only to prevent accidental edits
+    readonly_fields = ('product', 'quantity', 'price', 'pack_details')
+    # Don't allow adding/deleting items from the order in the admin
+    extra = 0
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 @admin.action(description="Release payment to Wholesaler")
 def release_payment_action(modeladmin, request, queryset):
@@ -32,9 +46,12 @@ def release_payment_action(modeladmin, request, queryset):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("number", "date", "retailer", "wholesaler", "total_value", "status")
+    # --- CHANGE IS HERE ---
+    # Replace 'total_value' with 'grand_total'
+    list_display = ("number", "date", "retailer", "wholesaler", "grand_total", "status")
+    # --- END OF CHANGE ---
+    
     search_fields = ("number", "retailer__name", "wholesaler__name")
     list_filter = ("status", "payment_method", "date")
     
-    # === ADD THE CUSTOM ACTION TO YOUR ORDER ADMIN ===
     actions = [release_payment_action]

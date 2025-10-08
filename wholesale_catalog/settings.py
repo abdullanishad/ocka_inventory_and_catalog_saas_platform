@@ -5,6 +5,8 @@ Django settings for wholesale_catalog project.
 from pathlib import Path
 import os
 import dj_database_url  # for DATABASE_URL parsing
+from decouple import config # <-- 1. IMPORT THE CONFIG FUNCTION
+
 
 # ---------------------------------------------------------------------------
 # Build paths

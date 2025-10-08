@@ -62,9 +62,34 @@
       {% endfor %}
     </div>
 
+
+{% comment %}... inside cart.html, before the <div id="order-summary"> ... {% endcomment %}
+
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5">
+      <h3 class="text-lg font-semibold text-gray-900 mb-3">How Your Order is Processed</h3>
+      <ol class="space-y-3 text-sm text-gray-700">
+        <li class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">1</div>
+          <div><strong class="font-semibold text-gray-900">Book Your Order:</strong> You are not charged anything when you place this order.</div>
+        </li>
+        <li class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">2</div>
+          <div><strong class="font-semibold text-gray-900">Await Confirmation:</strong> The wholesaler will review and confirm your order.</div>
+        </li>
+        <li class="flex items-start gap-3">
+          <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">3</div>
+          <div><strong class="font-semibold text-gray-900">Make Payment:</strong> Once confirmed, you will be prompted to pay. Your funds are held securely by us and are only released to the wholesaler after they ship your order.</div>
+        </li>
+      </ol>
+    </div>
+    <div id="order-summary" class="bg-white border rounded-2xl p-4 sm:p-5 mt-4">
+      <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>
+      {% comment %}... 
+
+
     <!-- Order Summary -->
     <div id="order-summary" class="bg-white border rounded-2xl p-4 sm:p-5">
-      <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>
+      <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>rest of the file ... {% endcomment %}
       <div class="mt-3 flex items-center justify-between">
         <span class="text-gray-600">Total :</span>
         <span id="cart-total" class="text-xl font-semibold text-gray-900">₹{{ total }}</span>

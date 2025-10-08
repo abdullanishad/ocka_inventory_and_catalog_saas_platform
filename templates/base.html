@@ -54,10 +54,17 @@
               <a href="{% url 'accounts:profile' %}" class="block w-full text-left px-2 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100">
                 My Profile
               </a>
+              
+              <a href="{% url 'orders:list' %}" class="block w-full text-left px-2 py-2 rounded-lg text-sm hover:bg-gray-100">
+                My Orders
+              </a>
+              
+              <div class="border-t my-1"></div>
+
               <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
                 <button type="submit"
-                        class="w-full text-left px-2 py-2 rounded-lg text-sm hover:bg-gray-100">
+                        class="w-full text-left px-2 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50">
                   Logout
                 </button>
               </form>

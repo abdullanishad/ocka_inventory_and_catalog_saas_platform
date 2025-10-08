@@ -18,14 +18,16 @@ class Order(models.Model):
         CANCELLED = "CANCELLED", "Cancelled"
 
     class PaymentMethod(models.TextChoices):
+        # --- ADD MORE CHOICES ---
         COD = "cod", "COD"
         UPI = "upi", "UPI"
-        LINK = "link", "Link"
         CARD = "card", "Card"
-        BANK = "bank", "Bank Transfer"
+        NETBANKING = "netbanking", "Netbanking"
+        WALLET = "wallet", "Wallet"
+        # BANK = "bank", "Bank Transfer" # This is less common via Razorpay gateway
 
     number = models.CharField(max_length=20, unique=True)  # e.g., ORD-AB12CD
-    date = models.DateField(default=timezone.now)
+    date = models.DateTimeField(default=timezone.now)
 
     retailer = models.ForeignKey(
         Organization,
@@ -40,11 +42,19 @@ class Order(models.Model):
         limit_choices_to={"org_type": "wholesaler"},
     )
 
-    items_count = models.PositiveIntegerField(default=0)
-    total_value = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    # Add new fields
+    shipping_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    gst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # This field will store the final payable amount
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # --- UPDATE THE payment_method FIELD ---
     payment_method = models.CharField(
-        max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.COD
+        max_length=20, 
+        choices=PaymentMethod.choices, 
+        blank=True,  # Allow the field to be blank
+        null=True    # Allow the database column to be NULL
     )
     payment_status = models.CharField(
         max_length=20, default="Unpaid", help_text="Free text label for the table"
@@ -70,6 +80,16 @@ class Order(models.Model):
 
     def __str__(self):
         return self.number
+    
+    # orders/models.py
+# ... (inside the Order model)
+
+    def calculate_totals(self):
+        """Calculates the grand total based on other fields."""
+        self.grand_total = self.subtotal + self.shipping_charge + self.gst_amount
+        self.save()
+
+# ...
 
 
 class OrderItem(models.Model):
@@ -77,6 +97,9 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items")
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    # --- ADD THIS NEW FIELD ---
+    pack_details = models.CharField(max_length=100, blank=True, null=True, help_text="Stores the selected pack/MOQ details")
+
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
@@ -91,3 +114,5 @@ class Shipment(models.Model):
 
     def __str__(self):
         return f"Shipment for Order {self.order.number}"
+    
+

@@ -29,6 +29,12 @@ from catalog.models import Product, SizeStock, Size
 from .cart import get_cart, add_item, update_quantity, remove_item
 from .models import Order, OrderItem
 
+
+# orders/views.py
+# ... (add ShipmentForm to your imports)
+from .forms import ShipmentForm
+from .models import Order, OrderItem, Shipment # Make sure Shipment is imported
+
 logger = logging.getLogger(__name__)
 
 # ----- constants & helpers -----
@@ -75,6 +81,12 @@ class OrderListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = Order.objects.select_related("retailer", "wholesaler")
+
+        # We only need to annotate the item count now.
+        qs = qs.annotate(
+            annot_items_count=Coalesce(Sum("items__quantity"), Value(0), output_field=IntegerField())
+        )
+        
         qs = qs.annotate(
             annot_items_count=Coalesce(Sum("items__quantity"), Value(0), output_field=IntegerField()),
             annot_total_value=Coalesce(
@@ -110,8 +122,11 @@ class OrderListView(LoginRequiredMixin, ListView):
         s, e = _date_range_from_params(date_preset, start, end)
         if s:
             qs = qs.filter(date__gte=s)
+        # --- THIS IS THE FIX ---
         if e:
-            qs = qs.filter(date__lte=e)
+            # To include all records on the end date, filter for less than the *next day*.
+            qs = qs.filter(date__lt=e + timedelta(days=1))
+        # --- END OF FIX ---
         return qs
 
     def get_context_data(self, **kwargs):
@@ -324,7 +339,10 @@ def checkout(request):
     cart = get_cart(request)
     return render(request, "orders/checkout.html", {"cart": cart})
 
-# ----- CHECKOUT -----
+# orders/views.py
+
+# ... (imports and other views up to ajax_checkout)
+
 @require_POST
 @login_required
 def ajax_checkout(request):
@@ -410,36 +428,43 @@ def ajax_checkout(request):
                         if not size_id or qty_to_deduct == 0:
                             continue
 
-                        # Efficient stock update with proper error handling
                         stock_record = SizeStock.objects.select_for_update().get(product=product, size_id=size_id)
                         
                         if stock_record.quantity < qty_to_deduct:
                             raise Exception(f"Not enough stock for {product.name} (Size: {size_name}).")
                         
-                        # Use efficient queryset update
                         SizeStock.objects.filter(pk=stock_record.pk).update(quantity=F('quantity') - qty_to_deduct)
 
-                # Create order
-                items_count = sum(i["quantity"] for i in items)
-                total_value = sum(i["price"] * i["quantity"] for i in items)
+                # --- UPDATED CODE LOGIC ---
+                subtotal = sum(i["price"] * i["quantity"] for i in items)
+                order_total_for_json = subtotal # Keep this for the JSON response
 
                 order = Order.objects.create(
                     number=_new_order_number(),
                     retailer=retailer_org,
                     wholesaler=wholesaler,
-                    items_count=items_count,
-                    total_value=total_value,
+                    subtotal=subtotal, # Use the new subtotal field
                     status=Order.Status.PENDING,
                 )
+                # --- END OF UPDATED CODE LOGIC ---
 
+                # --- THIS IS THE FIX ---
+                # We need to save the 'moq_label' to the 'pack_details' field
                 for it in items:
-                    OrderItem.objects.create(order=order, product=it["product"], quantity=it["quantity"], price=it["price"])
+                    OrderItem.objects.create(
+                        order=order, 
+                        product=it["product"], 
+                        quantity=it["quantity"], 
+                        price=it["price"],
+                        pack_details=it.get("moq_label") # Add this line
+                    )
+                # --- END OF FIX ---
                 
                 created_orders.append({
                     "order_number": order.number,
                     "order_id": order.pk,
                     "order_url": reverse("orders:detail", args=[order.pk]),
-                    "order_total": str(total_value),
+                    "order_total": str(order_total_for_json),
                 })
 
             # Clear cart
@@ -451,7 +476,7 @@ def ajax_checkout(request):
     except Exception as exc:
         logger.exception("Error during checkout")
         return JsonResponse({"success": False, "error": str(exc)}, status=500)
-
+    
 
 @require_POST
 @login_required
@@ -518,7 +543,7 @@ def update_status(request, pk):
         order.save(update_fields=["status"])
         # Add success message as in code 1
         messages.success(request, f"Order status updated to {order.get_status_display()}.")
-        return JsonResponse({"success": True, "status": chosen_status})
+        return redirect('orders:detail', pk=order.pk)
     except Exception as exc:
         logger.exception("Failed to update order %s status -> %s", pk, chosen_status)
         return JsonResponse({"success": False, "error": "Server error while updating status."}, status=500)
@@ -561,13 +586,14 @@ from django.views.decorators.csrf import csrf_exempt
 # Initialize Razorpay client
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+# orders/views.py
 @login_required
 def start_payment(request, pk):
     order = get_object_or_404(Order, pk=pk)
     
     # Create a Razorpay Order
     razorpay_order = client.order.create({
-        "amount": int(order.total_value * 100), # Amount in paise
+        "amount": int(order.grand_total * 100), # Use grand_total
         "currency": "INR",
         "receipt": order.number,
     })
@@ -579,7 +605,7 @@ def start_payment(request, pk):
         'order': order,
         'razorpay_order_id': razorpay_order['id'],
         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
-        'amount': int(order.total_value * 100),
+        'amount': int(order.grand_total * 100), # Use grand_total
     }
     return render(request, 'orders/payment.html', context)
 
@@ -606,9 +632,90 @@ def payment_success(request):
             order.razorpay_payment_id = razorpay_payment_id
             order.razorpay_signature = razorpay_signature
             order.status = Order.Status.PAID # Payment is now held in Escrow
+            order.payment_status = "Paid" # Also update the text status
+
+            # --- NEW LOGIC TO FETCH PAYMENT METHOD ---
+            try:
+                payment_details = client.payment.fetch(razorpay_payment_id)
+                method = payment_details.get('method')
+                # Check if the fetched method is a valid choice in our model
+                if method in [choice[0] for choice in Order.PaymentMethod.choices]:
+                    order.payment_method = method
+            except Exception as e:
+                logger.error(f"Could not fetch payment method for {razorpay_payment_id}: {e}")
+            # --- END OF NEW LOGIC ---
+
             order.save()
             
             return render(request, 'orders/payment_success.html', {'order': order})
         except Exception as e:
             # Signature verification failed
             return render(request, 'orders/payment_failed.html')
+        
+
+
+
+
+# ... (rest of your views)
+
+@login_required
+def add_shipment(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    
+    # Security check: only the wholesaler of this order can add shipment info
+    if request.user.organization != order.wholesaler:
+        messages.error(request, "You do not have permission to perform this action.")
+        return redirect('orders:detail', pk=order.pk)
+
+    if request.method == 'POST':
+        form = ShipmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            with transaction.atomic():
+                shipment = form.save(commit=False)
+                shipment.order = order
+                shipment.save()
+
+                # Update the order status to SHIPPED
+                order.status = Order.Status.SHIPPED
+                order.save()
+
+            messages.success(request, f"Shipping information added for order {order.number}.")
+            return redirect('orders:detail', pk=order.pk)
+    else:
+        form = ShipmentForm()
+
+    return render(request, 'orders/shipment_form.html', {'form': form, 'order': order})
+
+# orders/views.py
+# ... (imports)
+
+@login_required
+def add_shipping_and_gst(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    if request.user.organization != order.wholesaler:
+        messages.error(request, "Permission denied.")
+        return redirect('orders:detail', pk=pk)
+
+    if request.method == 'POST':
+        shipping_charge_str = request.POST.get('shipping_charge', '0')
+        # --- ADD THIS LINE ---
+        gst_amount_str = request.POST.get('gst_amount', '0')
+        
+        try:
+            order.shipping_charge = Decimal(shipping_charge_str)
+            # --- CHANGE IS HERE ---
+            order.gst_amount = Decimal(gst_amount_str)
+            
+            # Recalculate the grand total with the new manual values
+            order.grand_total = order.subtotal + order.shipping_charge + order.gst_amount
+            
+            # Update status and save
+            order.status = Order.Status.AWAITING_PAYMENT
+            order.save()
+            
+            messages.success(request, "Shipping & GST added and order confirmed. The retailer has been notified to pay.")
+            return redirect('orders:detail', pk=pk)
+        except Exception:
+            messages.error(request, "Invalid shipping charge or GST amount.")
+
+    return render(request, 'orders/add_shipping_form.html', {'order': order})

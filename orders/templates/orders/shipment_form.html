@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Shipping Info for {{ order.number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-12 px-4 sm:px-6">
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <h1 class="text-2xl font-bold text-gray-900">Upload Shipping Info</h1>
+        <p class="mt-2 text-sm text-gray-600">For Order #<span class="font-semibold">{{ order.number }}</span></p>
+
+        <form method="post" enctype="multipart/form-data" class="mt-8 space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="id_courier_name" class="block text-sm font-medium text-gray-700">Courier Name</label>
+                <div class="mt-1">{{ form.courier_name }}</div>
+            </div>
+
+            <div>
+                <label for="id_tracking_id" class="block text-sm font-medium text-gray-700">Tracking ID</label>
+                <div class="mt-1">{{ form.tracking_id }}</div>
+            </div>
+
+            <div>
+                <label for="id_shipping_document" class="block text-sm font-medium text-gray-700">Shipping Document (Optional)</label>
+                <div class="mt-1">{{ form.shipping_document }}</div>
+                <p class="text-xs text-gray-500 mt-1">e.g., a photo of the shipping label or receipt.</p>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <a href="{% url 'orders:detail' order.pk %}" class="px-4 py-2 rounded-lg border font-medium text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700">
+                    Save and Mark as Shipped
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
