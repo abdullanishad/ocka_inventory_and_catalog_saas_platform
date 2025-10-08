@@ -10,7 +10,7 @@
         <div class="my-6 p-4 bg-gray-50 rounded-lg">
             <div class="flex justify-between items-center">
                 <span class="text-gray-500">Total Amount:</span>
-                <span class="text-2xl font-bold text-gray-900">₹{{ order.total_value|floatformat:2 }}</span>
+                <span class="text-2xl font-bold text-gray-900">₹{{ order.grand_total|floatformat:2 }}</span>
             </div>
         </div>
 
@@ -36,7 +36,7 @@
                 var form = document.createElement('form');
                 form.method = 'POST';
                 form.action = "{% url 'orders:payment_success' %}";
-                
+
                 var csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'csrfmiddlewaretoken';
@@ -66,7 +66,7 @@
             }
         };
         var rzp1 = new Razorpay(options);
-        
+
         // Handle payment failures
         rzp1.on('payment.failed', function (response){
                 alert("Payment Failed: " + response.error.description);

@@ -17,7 +17,7 @@
         <div class="mt-6 text-left border-t pt-4">
             <p class="text-sm text-gray-500">Order Number: <span class="font-semibold text-gray-800">{{ order.number }}</span></p>
             <p class="text-sm text-gray-500">Payment ID: <span class="font-semibold text-gray-800">{{ order.razorpay_payment_id }}</span></p>
-            <p class="text-sm text-gray-500">Amount Paid: <span class="font-semibold text-gray-800">₹{{ order.total_value|floatformat:2 }}</span></p>
+            <p class="text-sm text-gray-500">Amount Paid: <span class="font-semibold text-gray-800">₹{{ order.grand_total|floatformat:2 }}</span></p>
         </div>
 
         <a href="{% url 'orders:detail' order.pk %}" class="mt-8 inline-block w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition">

@@ -322,9 +322,8 @@ def delete_product(request, pk):
     messages.success(request, f"Product '{product.name}' has been archived and is no longer visible to retailers.")
     return redirect("catalog:wholesaler_dashboard")
 
-# ==========================================================
-#   REPORTS VIEW (CORRECTED)
-# ==========================================================
+# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/catalog/views.py
+
 @login_required
 @user_passes_test(require_wholesaler)
 def wholesale_reports(request):
@@ -335,11 +334,10 @@ def wholesale_reports(request):
     orders_qs = Order.objects.filter(wholesaler=org, date__range=[start_date, today])
     delivered_orders = orders_qs.filter(status=Order.Status.DELIVERED)
     
-    # === FIX IS HERE: Added output_field to Coalesce for Decimal fields ===
     key_metrics = delivered_orders.aggregate(
-        total_sales=Coalesce(Sum('total_value'), Value(0), output_field=DecimalField()),
-        total_items=Coalesce(Sum('items_count'), Value(0)),
-        avg_order_value=Coalesce(Avg('total_value'), Value(0), output_field=DecimalField())
+        total_sales=Coalesce(Sum('grand_total'), Value(0), output_field=DecimalField()),
+        total_items=Coalesce(Sum('items__quantity'), Value(0)),
+        avg_order_value=Coalesce(Avg('grand_total'), Value(0), output_field=DecimalField())
     )
 
     best_sellers = OrderItem.objects.filter(

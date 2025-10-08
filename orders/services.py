@@ -3,6 +3,7 @@ import razorpay
 from django.conf import settings
 from .models import Order
 
+# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/orders/services.py
 def release_payment_to_wholesaler(order: Order):
     """
     Handles the logic for creating a Razorpay Linked Account and transferring funds.
@@ -37,7 +38,7 @@ def release_payment_to_wholesaler(order: Order):
 
         # 2. Calculate amount to transfer (e.g., after a 5% commission)
         commission_rate = 0.05
-        transfer_amount = int(order.total_value * (1 - commission_rate) * 100) # Amount in paise
+        transfer_amount = int(order.grand_total * (1 - commission_rate) * 100) # Amount in paise
 
         # 3. Initiate the Transfer from the captured payment
         transfer = client.payment.transfer(order.razorpay_payment_id, {
@@ -53,7 +54,7 @@ def release_payment_to_wholesaler(order: Order):
         # 4. Update Order Status
         order.status = Order.Status.COMPLETED
         order.save()
-        
+
         return (True, f"Successfully released payment for order {order.number}.")
 
     except Exception as e:

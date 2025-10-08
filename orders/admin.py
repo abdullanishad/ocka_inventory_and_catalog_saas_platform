@@ -1,4 +1,4 @@
-# orders/admin.py
+# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/orders/admin.py
 from django.contrib import admin, messages
 from .models import Order, OrderItem
 from .services import release_payment_to_wholesaler
@@ -24,7 +24,7 @@ def release_payment_action(modeladmin, request, queryset):
     """
     # We only want to process orders that are in the SHIPPED state
     eligible_orders = queryset.filter(status=Order.Status.SHIPPED)
-    
+
     success_count = 0
     error_count = 0
 
@@ -50,8 +50,8 @@ class OrderAdmin(admin.ModelAdmin):
     # Replace 'total_value' with 'grand_total'
     list_display = ("number", "date", "retailer", "wholesaler", "grand_total", "status")
     # --- END OF CHANGE ---
-    
+
     search_fields = ("number", "retailer__name", "wholesaler__name")
     list_filter = ("status", "payment_method", "date")
-    
+
     actions = [release_payment_action]

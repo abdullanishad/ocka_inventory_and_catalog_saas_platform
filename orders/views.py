@@ -195,7 +195,7 @@ def export_orders_csv(request):
         ])
     return resp
 
-# ----- CREATE (single product) -----
+# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/orders/views.py
 @login_required
 def create_order(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -208,8 +208,7 @@ def create_order(request, product_id):
         number=_new_order_number(),
         retailer=retailer_org,
         wholesaler=product.owner,
-        items_count=1,
-        total_value=product.wholesale_price,
+        subtotal=product.wholesale_price,
         payment_method=Order.PaymentMethod.COD,
         payment_status="Unpaid",
         status=Order.Status.PENDING,
