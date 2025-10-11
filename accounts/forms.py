@@ -1,61 +1,42 @@
 # accounts/forms.py
 from django import forms
-from django.db import transaction
 from .models import User, Organization, CustomerProfile
 
-class ComprehensiveSignupForm(forms.Form):
+# Step 1: Core Account Details
+class SignupStep1Form(forms.Form):
     business_name = forms.CharField(max_length=200, required=True)
     business_type = forms.ChoiceField(choices=Organization.ORG_TYPES, widget=forms.RadioSelect, required=True)
     phone_number = forms.CharField(max_length=20, required=True)
-    
-    email = forms.EmailField(required=True)
-    password = forms.CharField(widget=forms.PasswordInput, required=True)
+    password = forms.CharField(widget=forms.PasswordInput, required=True, min_length=8)
     password_confirm = forms.CharField(widget=forms.PasswordInput, required=True, label="Confirm Password")
-
-    shipping_address = forms.CharField(widget=forms.Textarea, required=False)
-    bank_account_holder_name = forms.CharField(max_length=100, required=False)
-    bank_account_number = forms.CharField(max_length=30, required=False)
-    bank_ifsc_code = forms.CharField(max_length=20, required=False)
-    
     terms = forms.BooleanField(required=True, error_messages={'required': 'You must agree to the terms.'})
 
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get('password') != cleaned_data.get('password_confirm'):
-            raise forms.ValidationError("Passwords do not match.")
-        if User.objects.filter(email=cleaned_data.get('email')).exists():
-            raise forms.ValidationError("An account with this email already exists.")
+            self.add_error('password_confirm', "Passwords do not match.")
         return cleaned_data
 
-    @transaction.atomic
-    def save(self):
-        data = self.cleaned_data
-        
-        organization = Organization.objects.create(
-            name=data['business_name'],
-            org_type=data['business_type']
-        )
-        
-        user = User.objects.create_user(
-            username=data['email'],
-            email=data['email'],
-            password=data['password'],
-            role=data['business_type'],
-            organization=organization
-        )
-        
-        CustomerProfile.objects.filter(user=user).update(
-            phone=data['phone_number'],
-            street_address=data['shipping_address'],
-            bank_account_holder_name=data['bank_account_holder_name'],
-            bank_account_number=data['bank_account_number'],
-            bank_ifsc_code=data['bank_ifsc_code']
-        )
-        
-        return user
+# Step 2: Business Profile & Delivery Options
+class SignupStep2Form(forms.Form):
+    email = forms.EmailField(required=True)
+    shipping_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
+    supports_doorstep = forms.BooleanField(required=False, initial=False, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
+    supports_hub = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("An account with this email already exists.")
+        return email
 
-# === ADD THIS CLASS BACK INTO THE FILE ===
+# Step 3: Bank Details
+class SignupStep3Form(forms.Form):
+    bank_account_holder_name = forms.CharField(max_length=100, required=False)
+    bank_account_number = forms.CharField(max_length=30, required=False)
+    bank_ifsc_code = forms.CharField(max_length=20, required=False)
+
+# Main Customer Profile Form for editing
 class CustomerProfileForm(forms.ModelForm):
     class Meta:
         model = CustomerProfile
@@ -65,13 +46,17 @@ class CustomerProfileForm(forms.ModelForm):
             'street_address', 'city', 'state', 'pincode',
             'gstin',
             'bank_account_holder_name', 'bank_name', 
-            'bank_account_number', 'bank_ifsc_code'
+            'bank_account_number', 'bank_ifsc_code',
+            'supports_doorstep', 'supports_hub'
         )
         widgets = {
             'about_us': forms.Textarea(attrs={'rows': 4}),
+            'supports_doorstep': forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}),
+            'supports_hub': forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = 'w-full border border-gray-300 rounded-lg px-3 py-2 mt-1'
+            if field_name not in ['supports_doorstep', 'supports_hub']:
+                field.widget.attrs['class'] = 'w-full border border-gray-300 rounded-lg px-3 py-2 mt-1'

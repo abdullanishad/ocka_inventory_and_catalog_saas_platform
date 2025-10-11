@@ -77,8 +77,9 @@ form .btn {
 /* Prevent sideways scroll */
 html, body { overflow-x: hidden; }
 
+/* And replace it with this: */
 body, input, button, select, textarea {
-  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* =========================================================
@@ -94,9 +95,18 @@ body, input, button, select, textarea {
 .oc-hero h1 { margin: 0; font-size: 20px; font-weight: 600; color: #111827; }
 .oc-hero p { margin: 8px auto 0; max-width: 260px; color: #4b5563; font-size: 14px; }
 .oc-btn {
-  display: inline-block; margin-top: 16px; width: 100%; text-align: center;
-  background: #111827; color: #fff; font-weight: 600; font-size: 14px;
-  padding: 12px 14px; border-radius: 5px; text-decoration: none;
+  display: inline-block;
+  margin-top: 16px;
+  width: 100%;
+  text-align: center;
+  background-color: transparent;
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+  padding: 12px 14px;
+  border: 3px solid white;
+  border-radius: 0; /* This makes the corners sharp */
+  text-decoration: none;
 }
 
 .oc-section { padding: 8px 16px 10px; }

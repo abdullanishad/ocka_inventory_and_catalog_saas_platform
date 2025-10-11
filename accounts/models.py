@@ -66,6 +66,10 @@ class CustomerProfile(models.Model):
     bank_name = models.CharField(max_length=100, blank=True, null=True)
     bank_account_number = models.CharField(max_length=30, blank=True, null=True)
     bank_ifsc_code = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Delivery options
+    supports_doorstep = models.BooleanField(default=False)
+    supports_hub = models.BooleanField(default=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -81,11 +85,11 @@ class CustomerProfile(models.Model):
     @property
     def is_wholesaler(self):
         # prefer explicit profile value if set else fall back to user.role
-        return (self.user_type == self.WHOLESALER) or (getattr(self.user, "role", None) == self.WHOLESALER)
+        return (self.user_type == "wholesaler") or (getattr(self.user, "role", None) == "wholesaler")
 
     @property
     def is_retailer(self):
-        return (self.user_type == self.RETAILER) or (getattr(self.user, "role", None) == self.RETAILER)
+        return (self.user_type == "retailer") or (getattr(self.user, "role", None) == "retailer")
 
     def get_min_order_qty(self):
         return self.min_order_qty or (self.extra or {}).get("min_order_qty")

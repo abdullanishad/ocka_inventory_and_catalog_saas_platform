@@ -687,25 +687,54 @@ def add_shipment(request, pk):
 
 # orders/views.py
 # ... (imports)
+# orders/views.py
+# ... (imports)
+from decimal import Decimal
 
 @login_required
 def add_shipping_and_gst(request, pk):
     order = get_object_or_404(Order, pk=pk)
+    wholesaler_profile = request.user.profile
+
+    # Security check
     if request.user.organization != order.wholesaler:
         messages.error(request, "Permission denied.")
         return redirect('orders:detail', pk=pk)
 
+    # Check for bank details
+    bank_details_complete = all([
+        wholesaler_profile.bank_account_holder_name,
+        wholesaler_profile.bank_name,
+        wholesaler_profile.bank_account_number,
+        wholesaler_profile.bank_ifsc_code,
+    ])
+
     if request.method == 'POST':
+        if not bank_details_complete:
+            messages.error(request, "You must complete your bank details before confirming orders.")
+            return redirect('accounts:edit_profile')
+
         shipping_charge_str = request.POST.get('shipping_charge', '0')
-        # --- ADD THIS LINE ---
         gst_amount_str = request.POST.get('gst_amount', '0')
-        
+        delivery_method = request.POST.get('delivery_method')
+
+        # Validate that a delivery method was chosen
+        if not delivery_method:
+            messages.error(request, "Please select a delivery method.")
+            # Re-render the form with an error
+            return render(request, 'orders/add_shipping_form.html', {
+                'order': order,
+                'bank_details_complete': bank_details_complete,
+                'wholesaler_profile': wholesaler_profile,
+                'error': 'Please select a delivery method.'
+            })
+
         try:
             order.shipping_charge = Decimal(shipping_charge_str)
-            # --- CHANGE IS HERE ---
             order.gst_amount = Decimal(gst_amount_str)
+            order.delivery_method = delivery_method
             
-            # Recalculate the grand total with the new manual values
+            # Recalculate the grand total
             order.grand_total = order.subtotal + order.shipping_charge + order.gst_amount
             
             # Update status and save
@@ -714,7 +743,12 @@ def add_shipping_and_gst(request, pk):
             
             messages.success(request, "Shipping & GST added and order confirmed. The retailer has been notified to pay.")
             return redirect('orders:detail', pk=pk)
-        except Exception:
+        except (ValueError, TypeError):
             messages.error(request, "Invalid shipping charge or GST amount.")
 
-    return render(request, 'orders/add_shipping_form.html', {'order': order})
+    context = {
+        'order': order,
+        'bank_details_complete': bank_details_complete,
+        'wholesaler_profile': wholesaler_profile,
+    }
+    return render(request, 'orders/add_shipping_form.html', context)

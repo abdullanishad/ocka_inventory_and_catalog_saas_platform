@@ -8,35 +8,21 @@
   <title>{% block title %}My Site{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@700&display=swap" rel="stylesheet">
+
 </head>
 <body class="bg-gray-50 overflow-x-hidden" style="font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
   
-  <!-- ✅ Header -->
   <nav class="bg-white border-b relative z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
 
-      <!-- Brand -->
-      <a href="/" class="text-2xl font-bold text-gray-900">ocka</a>
+      <a href="/" class="text-2xl font-bold text-gray-700" style="font-family: 'Syncopate', sans-serif;">ocka</a>
 
-      <!-- Right actions -->
       <div class="flex items-center gap-3">
 
-        {# Show Sell button only if on home AND user is NOT logged in #}
-        {% if not user.is_authenticated %}
-          <a
-            {% if sell_href_urlname %}
-              href="{% url sell_href_urlname %}"
-            {% else %}
-              href="{% url 'accounts:signup' %}"
-            {% endif %}
-            class="px-4 py-2 rounded-xl border-2 border-gray-200 text-gray-900 font-semibold hover:bg-gray-50"
-          >
-            Sell
-          </a>
-        {% endif %}
-
-        <!-- Profile dropdown -->
         <div class="relative" id="oc-prof">
           <button id="oc-prof-btn"
                   class="h-10 w-10 grid place-items-center rounded-lg hover:bg-gray-50"
@@ -46,7 +32,6 @@
             </svg>
           </button>
 
-          <!-- Menu -->
           <div id="oc-prof-menu"
                class="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-2 hidden z-50"
                 role="menu" aria-hidden="true">
@@ -71,11 +56,11 @@
             {% else %}
               <a href="{% url 'accounts:login' %}" class="block px-2 py-2 rounded-lg text-sm hover:bg-gray-100">Login</a>
               <a href="{% url 'accounts:signup' %}" class="block px-2 py-2 rounded-lg text-sm hover:bg-gray-100">Sign up</a>
+              <a href="{% url 'accounts:signup' %}?type=wholesaler" class="block px-2 py-2 rounded-lg text-sm hover:bg-gray-100">Sell</a>
             {% endif %}
           </div>
         </div>
 
-        <!-- Cart (retailer only) -->
         {% if user.is_authenticated and user.organization.org_type == "retailer" %}
           <a href="{% url 'orders:view_cart' %}" class="relative h-10 w-10 grid place-items-center rounded-lg hover:bg-gray-50" aria-label="Cart">
             <svg class="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -100,8 +85,7 @@
     </div>
   {% endif %}
 
-  <!-- Page Content -->
-<main class="{% if request.user.is_authenticated and request.user.organization.org_type == 'wholesaler' %}pb-14 md:pb-19{% endif %}">
+  <main class="{% if request.user.is_authenticated and request.user.organization.org_type == 'wholesaler' %}pb-14 md:pb-19{% endif %}">
        {% block content %}
 {% endblock %}
   </main>

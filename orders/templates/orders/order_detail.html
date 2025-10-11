@@ -37,6 +37,28 @@
     </div>
   </div>
 
+  {% if is_wholesaler and order.status == 'PENDING' %}
+  <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+    <h3 class="font-semibold text-gray-900 mb-2">Retailer Shipping Details</h3>
+    {% with retailer_profile=order.retailer.users.first.profile %}
+      {% if retailer_profile.street_address or retailer_profile.city %}
+        <address class="text-sm text-gray-700 not-italic">
+          <strong>{{ order.retailer.name }}</strong><br>
+          {{ retailer_profile.street_address }}<br>
+          {{ retailer_profile.city }}, {{ retailer_profile.state }} {{ retailer_profile.pincode }}
+        </address>
+        {% if retailer_profile.phone %}
+          <p class="text-sm text-gray-700 mt-2">
+            <strong>Contact:</strong> {{ retailer_profile.phone }}
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="text-sm text-gray-500">The retailer has not provided a full shipping address in their profile.</p>
+      {% endif %}
+    {% endwith %}
+  </div>
+  {% endif %}
+
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 bg-white border rounded-2xl p-4">
       <h2 class="font-semibold mb-3">Items ({{ order_items|length }})</h2>

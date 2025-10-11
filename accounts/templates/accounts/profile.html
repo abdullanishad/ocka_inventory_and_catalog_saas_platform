@@ -96,7 +96,6 @@
         </dl>
       </div>
 
-      <!-- Bank Details section (already present from Code 1) -->
       <div>
         <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Bank Details</h3>
         <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
@@ -118,6 +117,23 @@
           </div>
         </dl>
       </div>
+
+      {% if user.profile.is_wholesaler %}
+      <div>
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">Delivery Options</h3>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Doorstep Delivery</dt>
+            <dd class="text-gray-800 font-medium">{% if user.profile.supports_doorstep %}Supported{% else %}Not Supported{% endif %}</dd>
+          </div>
+          <div class="sm:col-span-1">
+            <dt class="text-gray-500">Nearest Hub Delivery</dt>
+            <dd class="text-gray-800 font-medium">{% if user.profile.supports_hub %}Supported{% else %}Not Supported{% endif %}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 

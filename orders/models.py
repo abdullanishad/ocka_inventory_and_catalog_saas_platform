@@ -25,6 +25,10 @@ class Order(models.Model):
         NETBANKING = "netbanking", "Netbanking"
         WALLET = "wallet", "Wallet"
         # BANK = "bank", "Bank Transfer" # This is less common via Razorpay gateway
+        
+    class DeliveryMethod(models.TextChoices):
+        DOORSTEP = "doorstep", "Doorstep Delivery"
+        HUB = "hub", "Nearest Hub Delivery"
 
     number = models.CharField(max_length=20, unique=True)  # e.g., ORD-AB12CD
     date = models.DateTimeField(default=timezone.now)
@@ -49,6 +53,9 @@ class Order(models.Model):
     gst_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     # This field will store the final payable amount
     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    delivery_method = models.CharField(max_length=20, choices=DeliveryMethod.choices, blank=True, null=True)
+    
     # --- UPDATE THE payment_method FIELD ---
     payment_method = models.CharField(
         max_length=20, 
@@ -114,5 +121,3 @@ class Shipment(models.Model):
 
     def __str__(self):
         return f"Shipment for Order {self.order.number}"
-    
-

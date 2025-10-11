@@ -6,7 +6,6 @@
 {% block content %}
 <div class="oc-phone">
 
-  <!-- HERO -->
   <section class="oc-hero"
            {% if hero and hero.image %}
              style="background-image: url('{{ hero.image.url }}');"
@@ -18,114 +17,167 @@
         class="oc-btn">
         {{ hero.cta_text }}
       </a>
-
     </div>
   </section>
 
-  <!-- TOP BRANDS -->
-  <section class="oc-top-brands">
-    <h2>TOP BRANDS</h2>
-    <div class="brand-grid">
-      {% if top_brands %}
-        {% for brand in top_brands %}
-          <a href="{{ brand.link|default:'#' }}" class="brand-item" title="{{ brand.name }}">
-            <img src="{{ brand.logo.url }}" alt="{{ brand.name }}">
-          </a>
-        {% endfor %}
-      {% else %}
-        <p>No featured brands yet.</p>
-      {% endif %}
+  <section class="py-9 bg-white">
+    <div class="text-center mb-12 px-4">
+      <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Top Brands</h2>
     </div>
-  </section>
-
-
-
-  <!-- CATEGORIES -->
-  <section class="oc-section">
-    <h2 class="oc-h2">Shop by Categories</h2>
-    <div class="oc-cat-list">
-      {% for c in categories %}
-        <a class="oc-cat-row"
-           href="{% url 'catalog:product_list' %}?category={{ c.id|default:c.pk }}">
-          <div class="oc-cat-left">
-            <div class="oc-ico">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16"
-                      fill="none" stroke="currentColor" stroke-width="1.5"
-                      stroke-linecap="round" />
-              </svg>
-            </div>
-            <span class="oc-cat-name">{{ c.name }}</span>
-          </div>
-          <svg class="oc-chev" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 6l6 6-6 6"
-                  fill="none" stroke="currentColor" stroke-width="1.5"
-                  stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-1">
+      {% for brand in top_brands %}
+        <a href="{{ brand.link|default:'#' }}" class="block aspect-[3/4] group relative overflow-hidden bg-gray-50" title="{{ brand.name }}">
+          <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110">
         </a>
       {% empty %}
-        <div class="oc-empty">No categories yet.</div>
+        <div class="col-span-2 lg:col-span-4 text-center text-gray-500 py-10">
+          <p>No featured brands yet.</p>
+        </div>
       {% endfor %}
     </div>
   </section>
 
-  <!-- How It Works - Homepage -->
-<section id="how-it-works" aria-labelledby="how-it-works-heading" class="how-it-works">
-  <div class="container">
-    <h2 id="how-it-works-heading" class="hiw-heading">How It Works</h2>
-    <p class="hiw-subtitle">Simple, secure wholesale ordering — built for both retailers and wholesalers.</p>
 
-    <ol class="hiw-steps" role="list">
-      <li class="hiw-step" data-step="1" aria-labelledby="step-1-title">
-        <h3 id="step-1-title" class="hiw-step-title">1. Add to Cart</h3>
-        <p class="hiw-step-desc">Retailers browse products, add items to their cart, and place orders — just like shopping online.</p>
-      </li>
 
-      <li class="hiw-step" data-step="2" aria-labelledby="step-2-title">
-        <h3 id="step-2-title" class="hiw-step-title">2. Secure Checkout (No Payment Here)</h3>
-        <p class="hiw-step-desc">
-          Orders are confirmed instantly at the <strong>same wholesale price you’d get walking into the store</strong>. No payment is taken during checkout.
-        </p>
-      </li>
+  <section class="py-16 bg-gray-50 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h2 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">Shop by Category</h2>
+        <p class="mt-4 text-lg text-gray-500">Discover products tailored to your needs.</p>
+      </div>
 
-      <li class="hiw-step" data-step="3" aria-labelledby="step-3-title">
-        <h3 id="step-3-title" class="hiw-step-title">3. Easy Payment via Platform</h3>
-        <p class="hiw-step-desc">
-          Once the order is placed, our team will share a payment request through WhatsApp / UPI. Payments are made <strong>securely through the platform</strong>, ensuring both retailer and wholesaler are protected.
-        </p>
-      </li>
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {% for c in categories %}
+          <a href="{% url 'catalog:product_list' %}?category={{ c.id|default:c.pk }}" class="group block p-8 bg-white rounded-xl border border-gray-200 hover:shadow-lg hover:border-blue-500 transition-all duration-300">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">{{ c.name }}</h3>
+                <p class="mt-1 text-sm text-gray-500">Explore Collection</p>
+              </div>
+              <div class="bg-gray-100 rounded-full p-3 ring-8 ring-white group-hover:bg-blue-500 transition-all duration-300">
+                <svg class="w-6 h-6 text-gray-400 group-hover:text-white transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </div>
+            </div>
+          </a>
+        {% empty %}
+          <div class="col-span-full text-center text-gray-500">
+            No categories yet.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
 
-      <li class="hiw-step" data-step="4" aria-labelledby="step-4-title">
-        <h3 id="step-4-title" class="hiw-step-title">4. Track & Receive</h3>
-        <p class="hiw-step-desc">
-          Retailers can track order status in real time. Wholesalers prepare and ship items after payment confirmation.
-        </p>
-      </li>
-    </ol>
+<section class="bg-white py-16 sm:py-24">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">
+        How It Works
+      </h2>
+      <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-500">
+        OCKA provides a simple and secure wholesale ordering process built for both retailers and wholesalers.
+      </p>
+    </div>
 
-    <p class="hiw-note">
-      <strong>Why we mediate:</strong> We act as a trusted mediator so both parties are protected and your platform remains the reliable place for repeat wholesale orders.
-    </p>
+    <div>
+      <ol>
+        <li class="relative pb-10">
+          <div class="absolute top-5 left-5 -ml-px h-full w-px bg-gray-200" aria-hidden="true"></div>
+          <div class="relative flex items-start group">
+            <span class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-8 ring-white">
+              <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.658-.463 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </span>
+            <div class="ml-4 w-full bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <div class="flex justify-between items-baseline">
+                <h3 class="text-lg font-semibold text-gray-900">Browse & Order</h3>
+                <p class="text-sm font-medium text-blue-500">Step 1</p>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">
+                Retailers browse products, add items to cart, and book orders with no upfront payment.
+              </p>
+            </div>
+          </div>
+        </li>
+
+        <li class="relative pb-10">
+          <div class="absolute top-5 left-5 -ml-px h-full w-px bg-gray-200" aria-hidden="true"></div>
+          <div class="relative flex items-start group">
+            <span class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-8 ring-white">
+              <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <div class="ml-4 w-full bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <div class="flex justify-between items-baseline">
+                <h3 class="text-lg font-semibold text-gray-900">Order Review</h3>
+                <p class="text-sm font-medium text-blue-500">Step 2</p>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">
+                Wholesaler reviews the order, adds shipping and GST, and confirms it, sending a payment request.
+              </p>
+            </div>
+          </div>
+        </li>
+
+        <li class="relative pb-10">
+          <div class="absolute top-5 left-5 -ml-px h-full w-px bg-gray-200" aria-hidden="true"></div>
+          <div class="relative flex items-start group">
+            <span class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-8 ring-white">
+              <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 21z" />
+              </svg>
+            </span>
+            <div class="ml-4 w-full bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <div class="flex justify-between items-baseline">
+                <h3 class="text-lg font-semibold text-gray-900">Secure Payment</h3>
+                <p class="text-sm font-medium text-blue-500">Step 3</p>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">
+                Retailer receives the final invoice and makes a secure payment through the platform.
+              </p>
+            </div>
+          </div>
+        </li>
+
+        <li class="relative">
+          <div class="relative flex items-start group">
+            <span class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ring-8 ring-white">
+                <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125V14.25m-17.25 4.5v-1.875a3.375 3.375 0 013.375-3.375h9.75a3.375 3.375 0 013.375 3.375v1.875m-17.25 4.5h16.5M6 6.225h12m-12 0a3 3 0 013-3h6a3 3 0 013 3v3.75" />
+                </svg>
+            </span>
+            <div class="ml-4 w-full bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <div class="flex justify-between items-baseline">
+                <h3 class="text-lg font-semibold text-gray-900">Track Shipment</h3>
+                <p class="text-sm font-medium text-blue-500">Step 4</p>
+              </div>
+              <p class="mt-2 text-sm text-gray-600">
+                Once payment is confirmed, the wholesaler ships the order. Retailers can track progress to their doorstep.
+              </p>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="mt-12 max-w-2xl mx-auto p-4 bg-blue-50 rounded-lg flex items-center space-x-4">
+      <div class="flex-shrink-0">
+        <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <p class="text-sm font-medium text-blue-800">
+        Funds are held safely until shipment, ensuring security for both parties.
+      </p>
+    </div>
   </div>
 </section>
 
-<!-- Example minimal CSS (optional) -->
-<style>
-  .how-it-works { padding: 40px 16px; background: #fff; color: #111; }
-  .container { max-width: 980px; margin: 0 auto; }
-  .hiw-heading { font-size: 28px; margin-bottom: 8px; }
-  .hiw-subtitle { color: #555; margin-bottom: 20px; }
-  .hiw-steps { list-style: none; padding: 0; margin: 0 0 16px 0; display: grid; gap: 18px; }
-  .hiw-step { border-radius: 8px; padding: 18px; border: 1px solid #eee; background: #fafafa; }
-  .hiw-step-title { font-size: 18px; margin: 0 0 6px 0; }
-  .hiw-step-desc { margin: 0; color: #444; line-height: 1.5; }
-  .hiw-note { margin-top: 12px; color: #333; font-size: 14px; }
-  @media (min-width: 768px) {
-    .hiw-steps { grid-template-columns: repeat(2, 1fr); }
-  }
-</style>
 
-
-  <footer class="oc-footer">© 2025 ocka. All rights reserved.</footer>
+  <footer class="oc-footer">© {% now "Y" %} ocka. All rights reserved.</footer>
 </div>
 {% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - Step 3{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6">
+    <div class="text-center">
+        <h2 class="text-3xl font-extrabold text-gray-900">Bank Details</h2>
+        <p class="mt-2 text-sm text-gray-600">Provide your bank details for payouts (optional).</p>
+    </div>
+
+    <form class="mt-8 space-y-6" method="post" novalidate>
+        {% csrf_token %}
+        {% include 'accounts/_signup_progress.html' with step='3' %}
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Account Holder Name</label>
+            {{ form.bank_account_holder_name }}
+            {% for error in form.bank_account_holder_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Account Number</label>
+            {{ form.bank_account_number }}
+            {% for error in form.bank_account_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">IFSC Code</label>
+            {{ form.bank_ifsc_code }}
+            {% for error in form.bank_ifsc_code.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="pt-4 space-y-3">
+            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800">
+                Finish & Create Account
+            </button>
+            <a href="{% url 'accounts:signup' %}?step=2" class="block text-center text-sm text-gray-500 hover:text-gray-700">Go Back</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fields = ['bank_account_holder_name', 'bank_account_number', 'bank_ifsc_code'];
+    fields.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.classList.add('appearance-none', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm');
+        }
+    });
+});
+</script>
+{% endblock %}

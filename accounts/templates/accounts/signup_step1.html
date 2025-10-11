@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - Step 1{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12 px-4 sm:px-6">
+    <div class="text-center">
+        <h2 class="text-3xl font-extrabold text-gray-900">Create Your Account</h2>
+        <p class="mt-2 text-sm text-gray-600">Let's start with the basics.</p>
+    </div>
+
+    <form class="mt-8 space-y-6" method="post" novalidate>
+        {% csrf_token %}
+        {% include 'accounts/_signup_progress.html' with step='1' %}
+
+        {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 text-sm text-red-700 p-3 rounded-md">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Business Name</label>
+            {{ form.business_name }}
+            {% for error in form.business_name.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Business Type</label>
+            <div id="business-type-selector" class="mt-1 grid grid-cols-2 gap-2 border border-gray-300 rounded-md p-1">
+                <button type="button" data-value="retailer" class="business-type-btn">Retailer</button>
+                <button type="button" data-value="wholesaler" class="business-type-btn">Wholesaler</button>
+                <div class="hidden">{{ form.business_type }}</div>
+            </div>
+            {% for error in form.business_type.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+            <div class="mt-1 flex">
+                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">+91</span>
+                {{ form.phone_number }}
+            </div>
+            {% for error in form.phone_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Password</label>
+            {{ form.password }}
+            {% for error in form.password.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
+            {{ form.password_confirm }}
+            {% for error in form.password_confirm.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="flex items-center">
+            {{ form.terms }}
+            <label for="{{ form.terms.id_for_label }}" class="ml-2 block text-sm text-gray-900">I agree to the <a href="#" class="font-medium text-blue-600">Terms</a> and <a href="#" class="font-medium text-blue-600">Policy</a>.</label>
+        </div>
+        {% for error in form.terms.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+
+        <div>
+            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800">
+                Next: Business Info
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fields = ['business_name', 'phone_number', 'password', 'password_confirm'];
+    fields.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            field.classList.add('appearance-none', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm');
+            if (fieldName === 'phone_number') {
+                field.classList.add('rounded-l-none');
+            }
+        }
+    });
+
+    const selector = document.getElementById('business-type-selector');
+    const buttons = selector.querySelectorAll('.business-type-btn');
+    const hiddenRadios = document.querySelectorAll('input[name="business_type"]');
+    
+    function updateButtons(selectedValue) {
+        hiddenRadios.forEach(radio => radio.checked = radio.value === selectedValue);
+        buttons.forEach(button => {
+            button.classList.toggle('bg-black', button.dataset.value === selectedValue);
+            button.classList.toggle('text-white', button.dataset.value === selectedValue);
+            button.classList.toggle('bg-white', button.dataset.value !== selectedValue);
+            button.classList.toggle('text-gray-700', button.dataset.value !== selectedValue);
+        });
+    }
+
+    const initialValue = document.querySelector('input[name="business_type"]:checked')?.value || 'retailer';
+    updateButtons(initialValue);
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            updateButtons(this.dataset.value);
+        });
+    });
+
+    buttons.forEach(btn => {
+        btn.classList.add('px-3', 'py-2', 'rounded', 'text-sm', 'font-medium', 'transition-colors');
+    });
+});
+</script>
+{% endblock %}
