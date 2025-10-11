@@ -13,27 +13,28 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.db.models import (Q, Sum, F, Value, DecimalField, IntegerField)
+from django.db.models import (Q, Sum, F, Value, DecimalField, IntegerField, Prefetch)
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
-from accounts.models import Organization
+import razorpay
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+
+from accounts.models import Organization, User
 from catalog.models import Product, SizeStock, Size
 from .cart import get_cart, add_item, update_quantity, remove_item
-from .models import Order, OrderItem
-
-
-# orders/views.py
-# ... (add ShipmentForm to your imports)
 from .forms import ShipmentForm
-from .models import Order, OrderItem, Shipment # Make sure Shipment is imported
+from .models import Order, OrderItem, Shipment
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def _new_order_number() -> str:
     return "ORD-" + get_random_string(6).upper()
 
 def _date_range_from_params(date_preset: str, start: str | None, end: str | None):
-    today = date.today()
+    today = timezone.now().date()
     if start or end:
         return (parse_date(start) if start else None, parse_date(end) if end else None)
     return DATE_PRESETS.get(date_preset, DATE_PRESETS["this_week"])(today)
@@ -110,9 +111,7 @@ class OrderListView(LoginRequiredMixin, ListView):
             qs = qs.filter(
                 Q(number__icontains=q)
                 | Q(retailer__name__icontains=q)
-                | Q(retailer__city__icontains=q)
                 | Q(wholesaler__name__icontains=q)
-                | Q(wholesaler__city__icontains=q)
             )
 
         valid_statuses = {c for c, _ in Order.Status.choices}
@@ -122,11 +121,9 @@ class OrderListView(LoginRequiredMixin, ListView):
         s, e = _date_range_from_params(date_preset, start, end)
         if s:
             qs = qs.filter(date__gte=s)
-        # --- THIS IS THE FIX ---
         if e:
             # To include all records on the end date, filter for less than the *next day*.
             qs = qs.filter(date__lt=e + timedelta(days=1))
-        # --- END OF FIX ---
         return qs
 
     def get_context_data(self, **kwargs):
@@ -149,9 +146,7 @@ class OrderListView(LoginRequiredMixin, ListView):
             base = base.filter(
                 Q(number__icontains=q)
                 | Q(retailer__name__icontains=q)
-                | Q(retailer__city__icontains=q)
                 | Q(wholesaler__name__icontains=q)
-                | Q(wholesaler__city__icontains=q)
             )
 
         s, e = _date_range_from_params(date_preset, start, end)
@@ -188,14 +183,14 @@ def export_orders_csv(request):
     for o in qs:
         writer.writerow([
             o.number, o.date.isoformat(),
-            getattr(o.retailer, "name", ""), getattr(o.retailer, "city", ""),
+            getattr(o.retailer, "name", ""), "",
             getattr(o.wholesaler, "name", ""),
             o.annot_items_count, f"{o.annot_total_value}",
             o.get_payment_method_display(), o.payment_status, o.get_status_display(),
         ])
     return resp
 
-# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/orders/views.py
+# ----- CREATE (single product) -----
 @login_required
 def create_order(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -220,7 +215,15 @@ def create_order(request, product_id):
 # ----- DETAIL -----
 @login_required
 def order_detail(request, pk):
-    order = get_object_or_404(Order, pk=pk)
+    order = get_object_or_404(
+        Order.objects.select_related(
+            "retailer", "wholesaler", "shipment"
+        ).prefetch_related(
+            Prefetch('retailer__users', queryset=User.objects.select_related('profile')),
+            Prefetch('wholesaler__users', queryset=User.objects.select_related('profile'))
+        ),
+        pk=pk
+    )
     org = getattr(request.user, "organization", None)
     if not (request.user.is_staff or request.user.is_superuser or (org and (org == order.retailer or org == order.wholesaler))):
         messages.error(request, "You do not have access to this order.")
@@ -228,10 +231,7 @@ def order_detail(request, pk):
 
     placed_at = order.date or getattr(order, "created_at", None)
 
-    try:
-        raw_items_qs = order.items.select_related("product").all()
-    except Exception:
-        raw_items_qs = order.orderitem_set.select_related("product").all()
+    raw_items_qs = order.items.select_related("product").all()
 
     order_items = []
     for oi in raw_items_qs:
@@ -259,6 +259,7 @@ def order_detail(request, pk):
         "is_staff": request.user.is_staff or request.user.is_superuser,
     }
     return render(request, "orders/order_detail.html", context)
+
 
 # ----- CART -----
 def view_cart(request):
@@ -337,10 +338,6 @@ def remove_from_cart(request, key):
 def checkout(request):
     cart = get_cart(request)
     return render(request, "orders/checkout.html", {"cart": cart})
-
-# orders/views.py
-
-# ... (imports and other views up to ajax_checkout)
 
 @require_POST
 @login_required
@@ -434,30 +431,25 @@ def ajax_checkout(request):
                         
                         SizeStock.objects.filter(pk=stock_record.pk).update(quantity=F('quantity') - qty_to_deduct)
 
-                # --- UPDATED CODE LOGIC ---
                 subtotal = sum(i["price"] * i["quantity"] for i in items)
-                order_total_for_json = subtotal # Keep this for the JSON response
+                order_total_for_json = subtotal
 
                 order = Order.objects.create(
                     number=_new_order_number(),
                     retailer=retailer_org,
                     wholesaler=wholesaler,
-                    subtotal=subtotal, # Use the new subtotal field
+                    subtotal=subtotal,
                     status=Order.Status.PENDING,
                 )
-                # --- END OF UPDATED CODE LOGIC ---
-
-                # --- THIS IS THE FIX ---
-                # We need to save the 'moq_label' to the 'pack_details' field
+                
                 for it in items:
                     OrderItem.objects.create(
                         order=order, 
                         product=it["product"], 
                         quantity=it["quantity"], 
                         price=it["price"],
-                        pack_details=it.get("moq_label") # Add this line
+                        pack_details=it.get("moq_label")
                     )
-                # --- END OF FIX ---
                 
                 created_orders.append({
                     "order_number": order.number,
@@ -480,12 +472,8 @@ def ajax_checkout(request):
 @require_POST
 @login_required
 def update_status(request, pk):
-    """
-    Update order.status via POST with comprehensive validation and security checks.
-    """
     order = get_object_or_404(Order, pk=pk)
     
-    # Parse incoming status (using improved parsing from code 2)
     new_status = None
     try:
         if request.content_type and "application/json" in request.content_type:
@@ -500,7 +488,6 @@ def update_status(request, pk):
     if not new_status:
         return JsonResponse({"success": False, "error": "Missing 'status' value"}, status=400)
 
-    # Case-insensitive status matching (using improved matching from code 2)
     new_status = str(new_status).strip()
     valid_keys_ci = {k.upper(): k for k, _ in Order.Status.choices}
     
@@ -510,7 +497,6 @@ def update_status(request, pk):
         allowed = [k for k, _ in Order.Status.choices]
         return JsonResponse({"success": False, "error": f"Invalid status. Allowed: {allowed}"}, status=400)
 
-    # === UPDATED TRANSITION RULES (from code 1) ===
     allowed_transitions = {
         Order.Status.PENDING: {Order.Status.AWAITING_PAYMENT, Order.Status.REJECTED},
         Order.Status.AWAITING_PAYMENT: {Order.Status.PAID, Order.Status.CANCELLED},
@@ -523,24 +509,19 @@ def update_status(request, pk):
     user = request.user
     user_org = getattr(user, "organization", None)
 
-    # Staff can bypass transition rules
     if not (user.is_staff or user.is_superuser):
-        # Check if the transition is allowed
         allowed_next_statuses = allowed_transitions.get(current_status, set())
         if chosen_status not in allowed_next_statuses:
             return JsonResponse({"success": False, "error": f"Invalid status transition from {current_status} to {chosen_status}"}, status=400)
 
-        # Check permissions (enhanced permission logic from code 1)
         if chosen_status in (Order.Status.AWAITING_PAYMENT, Order.Status.REJECTED, Order.Status.SHIPPED) and user_org != order.wholesaler:
             return JsonResponse({"success": False, "error": "Only the wholesaler can perform this action."}, status=403)
         if chosen_status == Order.Status.CANCELLED and user_org != order.retailer:
             return JsonResponse({"success": False, "error": "Only the retailer can perform this action."}, status=403)
 
-    # Perform update
     try:
         order.status = chosen_status
         order.save(update_fields=["status"])
-        # Add success message as in code 1
         messages.success(request, f"Order status updated to {order.get_status_display()}.")
         return redirect('orders:detail', pk=order.pk)
     except Exception as exc:
@@ -550,9 +531,6 @@ def update_status(request, pk):
 @require_POST
 @login_required
 def cancel_order(request, pk):
-    """
-    Allow retailer (owner) to cancel an order while it's in a cancellable state.
-    """
     order = get_object_or_404(Order, pk=pk)
     user_org = getattr(request.user, "organization", None)
     
@@ -560,7 +538,6 @@ def cancel_order(request, pk):
         messages.error(request, "You do not have permission to cancel this order.")
         return redirect("orders:detail", pk=order.pk)
 
-    # Allowed cancellation states
     allowed_cancel_states = {Order.Status.PENDING}
     current_status = order.status
 
@@ -568,7 +545,6 @@ def cancel_order(request, pk):
         messages.error(request, "Order cannot be cancelled at this stage.")
         return redirect("orders:detail", pk=order.pk)
 
-    # Perform cancellation
     order.status = getattr(Order.Status, "CANCELLED", "CANCELLED")
     order.payment_status = getattr(order, "payment_status", "Cancelled") or "Cancelled"
     order.save(update_fields=["status", "payment_status"])
@@ -576,23 +552,14 @@ def cancel_order(request, pk):
     messages.success(request, f"Order {order.number} has been cancelled.")
     return redirect("orders:detail", pk=order.pk)
 
-
-# orders/views.py
-import razorpay
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-
-# Initialize Razorpay client
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-# orders/views.py
 @login_required
 def start_payment(request, pk):
     order = get_object_or_404(Order, pk=pk)
     
-    # Create a Razorpay Order
     razorpay_order = client.order.create({
-        "amount": int(order.grand_total * 100), # Use grand_total
+        "amount": int(order.grand_total * 100),
         "currency": "INR",
         "receipt": order.number,
     })
@@ -604,7 +571,7 @@ def start_payment(request, pk):
         'order': order,
         'razorpay_order_id': razorpay_order['id'],
         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
-        'amount': int(order.grand_total * 100), # Use grand_total
+        'amount': int(order.grand_total * 100),
     }
     return render(request, 'orders/payment.html', context)
 
@@ -623,45 +590,32 @@ def payment_success(request):
         }
 
         try:
-            # Verify the payment signature
             client.utility.verify_payment_signature(params_dict)
             
-            # Find the order and update its status
             order = Order.objects.get(razorpay_order_id=razorpay_order_id)
             order.razorpay_payment_id = razorpay_payment_id
             order.razorpay_signature = razorpay_signature
-            order.status = Order.Status.PAID # Payment is now held in Escrow
-            order.payment_status = "Paid" # Also update the text status
+            order.status = Order.Status.PAID
+            order.payment_status = "Paid"
 
-            # --- NEW LOGIC TO FETCH PAYMENT METHOD ---
             try:
                 payment_details = client.payment.fetch(razorpay_payment_id)
                 method = payment_details.get('method')
-                # Check if the fetched method is a valid choice in our model
                 if method in [choice[0] for choice in Order.PaymentMethod.choices]:
                     order.payment_method = method
             except Exception as e:
                 logger.error(f"Could not fetch payment method for {razorpay_payment_id}: {e}")
-            # --- END OF NEW LOGIC ---
 
             order.save()
             
             return render(request, 'orders/payment_success.html', {'order': order})
         except Exception as e:
-            # Signature verification failed
             return render(request, 'orders/payment_failed.html')
-        
-
-
-
-
-# ... (rest of your views)
 
 @login_required
 def add_shipment(request, pk):
     order = get_object_or_404(Order, pk=pk)
     
-    # Security check: only the wholesaler of this order can add shipment info
     if request.user.organization != order.wholesaler:
         messages.error(request, "You do not have permission to perform this action.")
         return redirect('orders:detail', pk=order.pk)
@@ -674,7 +628,6 @@ def add_shipment(request, pk):
                 shipment.order = order
                 shipment.save()
 
-                # Update the order status to SHIPPED
                 order.status = Order.Status.SHIPPED
                 order.save()
 
@@ -685,23 +638,15 @@ def add_shipment(request, pk):
 
     return render(request, 'orders/shipment_form.html', {'form': form, 'order': order})
 
-# orders/views.py
-# ... (imports)
-# orders/views.py
-# ... (imports)
-from decimal import Decimal
-
 @login_required
 def add_shipping_and_gst(request, pk):
     order = get_object_or_404(Order, pk=pk)
     wholesaler_profile = request.user.profile
 
-    # Security check
     if request.user.organization != order.wholesaler:
         messages.error(request, "Permission denied.")
         return redirect('orders:detail', pk=pk)
 
-    # Check for bank details
     bank_details_complete = all([
         wholesaler_profile.bank_account_holder_name,
         wholesaler_profile.bank_name,
@@ -718,10 +663,8 @@ def add_shipping_and_gst(request, pk):
         gst_amount_str = request.POST.get('gst_amount', '0')
         delivery_method = request.POST.get('delivery_method')
 
-        # Validate that a delivery method was chosen
         if not delivery_method:
             messages.error(request, "Please select a delivery method.")
-            # Re-render the form with an error
             return render(request, 'orders/add_shipping_form.html', {
                 'order': order,
                 'bank_details_complete': bank_details_complete,
@@ -734,10 +677,8 @@ def add_shipping_and_gst(request, pk):
             order.gst_amount = Decimal(gst_amount_str)
             order.delivery_method = delivery_method
             
-            # Recalculate the grand total
             order.grand_total = order.subtotal + order.shipping_charge + order.gst_amount
             
-            # Update status and save
             order.status = Order.Status.AWAITING_PAYMENT
             order.save()
             

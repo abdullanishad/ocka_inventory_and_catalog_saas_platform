@@ -29,7 +29,8 @@ def require_wholesaler(user) -> bool:
 # Public/Retailer Views
 # ---------------------------------------------------------------------
 def product_list(request):
-    qs = Product.objects.filter(is_active=True).annotate(
+    # --- FIX: Only show products from organizations that have users ---
+    qs = Product.objects.filter(is_active=True, owner__users__isnull=False).distinct().annotate(
         total_quantity=Coalesce(Sum('size_stocks__quantity'), Value(0))
     ).filter(total_quantity__gt=0).select_related("owner", "category")
 
@@ -56,7 +57,10 @@ def product_list(request):
     }
     qs = qs.order_by(sort_map.get(sort, "-id"))
 
-    wholesalers = Organization.objects.filter(org_type="wholesaler").prefetch_related(
+    # --- FIX: Only show wholesalers that have users ---
+    wholesalers = Organization.objects.filter(
+        org_type="wholesaler", users__isnull=False
+    ).distinct().prefetch_related(
         Prefetch('users__profile', to_attr='user_profile')
     )[:20]
 
@@ -321,8 +325,6 @@ def delete_product(request, pk):
     
     messages.success(request, f"Product '{product.name}' has been archived and is no longer visible to retailers.")
     return redirect("catalog:wholesaler_dashboard")
-
-# abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-e22e26533d56887cdda519aa231afb06baf0804c/catalog/views.py
 
 @login_required
 @user_passes_test(require_wholesaler)

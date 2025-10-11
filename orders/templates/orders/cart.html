@@ -7,13 +7,10 @@
 
   {% if items %}
 
-    <!-- Wrap items so JS can clear them after successful booking -->
     <div id="cart-items-wrapper">
       {% for item in items %}
-        <!-- Cart item card -->
         <div class="bg-white border rounded-2xl p-3 sm:p-4 mb-4 cart-item-card" data-key="{{ item.key }}">
           <div class="grid grid-cols-[72px,1fr,auto] gap-3 sm:gap-4 items-start">
-            <!-- Thumb -->
             <div class="h-[72px] w-[72px] rounded-lg overflow-hidden bg-gray-100">
               {% if item.image %}
                 <img src="{{ item.image }}" alt="" class="w-full h-full object-cover">
@@ -22,7 +19,6 @@
               {% endif %}
             </div>
 
-            <!-- Info -->
             <div class="min-w-0">
               <div class="flex items-baseline justify-between sm:justify-start sm:gap-3">
                 <h2 class="text-gray-900 font-semibold truncate">{{ item.name }}</h2>
@@ -37,18 +33,15 @@
               <div class="text-xs text-gray-500 mt-0.5">Qty: {{ item.quantity }}</div>
             </div>
 
-            <!-- Unit price (desktop) -->
             <div class="hidden sm:block text-right">
               <div class="text-gray-900 font-semibold">Unit price : ₹{{ item.price }}</div>
             </div>
           </div>
 
-          <!-- Qty + Subtotal + Remove -->
           <div class="mt-3 sm:mt-4 flex items-center justify-between">
             <div class="flex items-center gap-2 sm:gap-3">
               <div class="text-lg sm:text-xl font-semibold text-gray-900">₹{{ item.subtotal }}</div>
 
-              <!-- Remove -->
               <a href="{% url 'orders:remove_from_cart' item.key %}"
                 class="grid place-items-center h-10 w-10 rounded-xl bg-red-600 text-white hover:bg-red-700"
                 aria-label="Remove item">
@@ -62,46 +55,37 @@
       {% endfor %}
     </div>
 
-
-{% comment %}... inside cart.html, before the <div id="order-summary"> ... {% endcomment %}
-
     <div class="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5">
       <h3 class="text-lg font-semibold text-gray-900 mb-3">How Your Order is Processed</h3>
       <ol class="space-y-3 text-sm text-gray-700">
         <li class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">1</div>
-          <div><strong class="font-semibold text-gray-900">Book Your Order:</strong> You are not charged anything when you place this order.</div>
+          <div><strong class="font-semibold text-gray-900">Book Your Order:</strong> You are not charged at this step. The total shown is an estimate based on product prices only.</div>
         </li>
         <li class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">2</div>
-          <div><strong class="font-semibold text-gray-900">Await Confirmation:</strong> The wholesaler will review and confirm your order.</div>
+          <div><strong class="font-semibold text-gray-900">Await Final Invoice:</strong> The wholesaler will confirm your order and add shipping costs and any applicable GST.</div>
         </li>
         <li class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 mt-0.5">3</div>
-          <div><strong class="font-semibold text-gray-900">Make Payment:</strong> Once confirmed, you will be prompted to pay. Your funds are held securely by us and are only released to the wholesaler after they ship your order.</div>
+          <div><strong class="font-semibold text-gray-900">Make Secure Payment:</strong> Once confirmed, you will be notified to pay the final grand total. Your funds are held securely by us until your order is shipped.</div>
         </li>
       </ol>
     </div>
+
     <div id="order-summary" class="bg-white border rounded-2xl p-4 sm:p-5 mt-4">
       <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>
-      {% comment %}... 
-
-
-    <!-- Order Summary -->
-    <div id="order-summary" class="bg-white border rounded-2xl p-4 sm:p-5">
-      <h3 class="text-lg font-semibold text-gray-900">Order Summary</h3>rest of the file ... {% endcomment %}
       <div class="mt-3 flex items-center justify-between">
-        <span class="text-gray-600">Total :</span>
+        <span class="text-gray-600">Subtotal (before shipping & GST):</span>
         <span id="cart-total" class="text-xl font-semibold text-gray-900">₹{{ total }}</span>
       </div>
 
-      <!-- Book Order button — now sends AJAX POST and shows modal -->
       <button id="book-order-btn"
               data-url="{% url 'orders:ajax_checkout' %}"
               class="mt-4 block w-full h-12 rounded-xl bg-black text-white font-semibold grid place-items-center hover:bg-gray-900">
         Book Order
       </button>
-      <p class="text-xs text-gray-500 mt-2">* Shipping &amp; GST applies</p>
+      <p class="text-xs text-gray-500 mt-2 text-center">* The final amount will be calculated by the wholesaler.</p>
     </div>
 
   {% else %}
@@ -111,7 +95,6 @@
   {% endif %}
 </div>
 
-<!-- Multi-order Success Modal -->
 <div id="order-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
   <div class="bg-white rounded-2xl p-6 w-full max-w-lg mx-4 text-left">
     <div class="flex items-center gap-4 mb-4">
@@ -127,13 +110,6 @@
     </div>
 
     <div id="order-list-container" class="space-y-3 mb-4">
-      <!-- JS will inject a list of created orders here -->
-      <!-- Example injected item:
-        <div class="flex justify-between items-center">
-          <div>Order <span class="font-mono">ORD-XXXX</span></div>
-          <a href="/orders/1/" class="text-sm text-blue-600">View</a>
-        </div>
-      -->
     </div>
 
     <div class="flex justify-end gap-3">
