@@ -132,8 +132,7 @@
         <div class="mb-4">
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900">Quantity</h3>
-            <!-- <span class="text-sm text-gray-500">Min: {{ minpcs }} pcs</span> -->
-          </div>
+            </div>
           <div class="mt-2 flex items-center gap-3">
             <button type="button" id="qty-minus" class="h-9 w-9 grid place-items-center rounded-lg border bg-white text-gray-800">−</button>
             <input id="qty-input" type="number" min="{{ minpcs }}" step="{{ minpcs }}" value="{{ minpcs }}" class="w-14 text-center h-9 rounded-lg border bg-white" />
@@ -189,7 +188,7 @@
       </a>
     {% endif %}
 
-    <a href="https://wa.me/{{ product.owner.phone|default:'+919778192886' }}?text=Hi,%20I'm%20interested%20in%20{{ product.name }}"
+    <a href="https://wa.me/{{ product.owner.phone|default:'+919020602744' }}?text=Hi,%20I'm%20interested%20in%20{{ product.name }}"
        class="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center justify-center gap-2">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.004 2C6.478 2 2 6.478 2 12.004c0 2.119.61 4.107 1.667 5.785L2 22l4.354-1.626A9.95 9.95 0 0 0 12.004 22C17.53 22 22 17.522 22 12.004 22 6.478 17.53 2 12.004 2Zm0 18c-1.756 0-3.39-.516-4.763-1.404l-.341-.213-2.584.964.919-2.674-.222-.342A7.96 7.96 0 0 1 4 12.004C4 7.59 7.59 4 12.004 4c4.413 0 8.003 3.59 8.003 8.004 0 4.415-3.59 8.004-8.003 8.004Z"/></svg>
       <span>Inquire via WhatsApp</span>
@@ -316,6 +315,11 @@
   }
 
   btns.forEach((btn, i) => btn.addEventListener('click', () => setActive(i)));
+  
+  // Select the first pack by default if available
+  if (btns.length > 0) {
+    setActive(0);
+  }
 })();
 </script>
 

@@ -15,7 +15,7 @@
         {% if form.errors %}
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
                 <strong class="font-bold">Error:</strong>
-                <span class="block sm:inline">Your business name and password didn't match. Please try again.</span>
+                <span class="block sm:inline">Your phone number and password didn't match. Please try again.</span>
             </div>
         {% endif %}
 
@@ -24,8 +24,8 @@
             <input type="hidden" name="next" value="{{ next }}">
             <div class="rounded-md shadow-sm -space-y-px">
                 <div>
-                    <label for="id_username" class="sr-only">Business Name or Username</label>
-                    <input id="id_username" name="username" type="text" autocomplete="username" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Business Name or Username">
+                    <label for="id_username" class="sr-only">Phone Number</label>
+                    <input id="id_username" name="username" type="text" autocomplete="username" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Phone Number">
                 </div>
                 <div>
                     <label for="id_password" class="sr-only">Password</label>

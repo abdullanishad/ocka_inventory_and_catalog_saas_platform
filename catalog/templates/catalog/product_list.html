@@ -4,124 +4,124 @@
 {% block title %}All Products{% endblock %}
 
 {% block content %}
-<div class="max-w-[1150px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-[1150px] mx-auto py-6">
 
-<div
-  id="wh-rail"
-  class="mt-3 flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2 pt-2 select-none"
->
-  {# ALL #}
-  <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}"
-     class="flex flex-col items-center gap-1 snap-start shrink-0">
-    <span class="grid place-items-center rounded-full p-[2px]
-                 bg-gradient-to-br from-[#2E65FF] to-[#5B8CFF]">
-      <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white">
-        <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
-                     bg-[#2E65FF] text-white font-bold text-sm md:text-base">All</span>
-      </span>
-    </span>
-    <span class="text-[13px] text-gray-600">All</span>
-  </a>
+  <div class="px-4 sm:px-6 lg:px-8">
+    <div id="wh-rail" class="flex items-center space-x-4 overflow-x-auto no-scrollbar py-2">
+      <a href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}" class="flex-shrink-0 text-center group">
+        <div class="w-20 h-20 rounded-full p-1 transition-all duration-300 {% if not request.GET.wholesaler %}bg-blue-500{% else %}bg-white ring-2 ring-gray-300 group-hover:ring-blue-500{% endif %}">
+          <div class="w-full h-full bg-white rounded-full flex items-center justify-center">
+            <span class="text-sm font-bold {% if not request.GET.wholesaler %}text-white bg-blue-500 w-full h-full rounded-full flex items-center justify-center{% else %}text-blue-500{% endif %}">All</span>
+          </div>
+        </div>
+        <p class="mt-2 text-sm font-medium text-gray-700">All</p>
+      </a>
 
-  {# Wholesaler pills (Updated) #}
-  {% for w in wholesalers %}
-    {% with profile=w.users.first.profile %}
-    <a href="?wholesaler={{ w.id }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}"
-       class="flex flex-col items-center gap-1 snap-start shrink-0">
-      
-      <span class="grid place-items-center rounded-full p-[2px]
-                   {% if request.GET.wholesaler|stringformat:'s' == w.id|stringformat:'s' %}
-                     ring-4 ring-blue-500/40 bg-gradient-to-br from-blue-500 to-purple-500
-                   {% else %}
-                     bg-gradient-to-br from-pink-400 to-purple-400
-                   {% endif %}">
-        <span class="w-16 h-16 md:w-20 md:h-20 grid place-items-center rounded-full bg-white overflow-hidden">
-          {% if profile and profile.business_logo %}
-            <img src="{{ profile.business_logo.url }}" alt="{{ w.name }} logo" class="w-full h-full object-cover">
-          {% else %}
-            <span class="w-14 h-14 md:w-18 md:h-18 grid place-items-center rounded-full
-                         bg-gradient-to-br from-pink-400 to-purple-400 text-white font-bold text-sm md:text-base">
-              {{ w.name|cut:" "|slice:":2"|upper }}
-            </span>
-          {% endif %}
-        </span>
-      </span>
-      <span class="text-[13px] text-gray-600 truncate max-w-20 md:max-w-28">{{ profile.User|default:w.name }}</span>
-    </a>
-    {% endwith %}
-  {% endfor %}
-
-</div>
-<!-- Filters -->
-<section class="mt-4 grid grid-cols-2 gap-3 md:gap-6">
-  <!-- Category -->
-  <form method="get" class="w-full">
-    {% if request.GET.wholesaler %}
-      <input type="hidden" name="wholesaler" value="{{ request.GET.wholesaler }}">
-    {% endif %}
-    {% if request.GET.sort %}
-      <input type="hidden" name="sort" value="{{ request.GET.sort }}">
-    {% endif %}
-    <select name="category"
-            class="w-full h-12 rounded-xl border border-gray-200 px-3 text-gray-700 bg-white"
-            onchange="this.form.submit()">
-      <option value="">All</option>
-      {% for c in categories %}
-        <option value="{{ c.id }}"
-                {% if request.GET.category|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
-          {{ c.name }}
-        </option>
+      {% for w in wholesalers %}
+        {% with profile=w.users.first.profile %}
+        <a href="?wholesaler={{ w.id }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" class="flex-shrink-0 text-center group">
+          <div class="w-20 h-20 rounded-full p-1 transition-all duration-300 {% if request.GET.wholesaler|stringformat:'s' == w.id|stringformat:'s' %}bg-purple-500{% else %}bg-white ring-2 ring-gray-300 group-hover:ring-purple-500{% endif %}">
+            <div class="w-full h-full bg-white rounded-full overflow-hidden">
+              {% if profile and profile.business_logo %}
+                <img src="{{ profile.business_logo.url }}" alt="{{ w.name }} logo" class="w-full h-full object-cover">
+              {% else %}
+                <span class="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-400 text-white font-bold text-sm">
+                  {{ w.name|cut:" "|slice:":2"|upper }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+          <p class="mt-2 text-sm font-medium text-gray-700 truncate max-w-20">{{ profile.User|default:w.name }}</p>
+        </a>
+        {% endwith %}
       {% endfor %}
-    </select>
-  </form>
+    </div>
+  </div>
 
-  <!-- Sort -->
-  <form method="get" class="w-full">
-    {% if request.GET.wholesaler %}
-      <input type="hidden" name="wholesaler" value="{{ request.GET.wholesaler }}">
-    {% endif %}
-    {% if request.GET.category %}
-      <input type="hidden" name="category" value="{{ request.GET.category }}">
-    {% endif %}
-    <select name="sort"
-            class="w-full h-12 rounded-xl border border-gray-200 px-3 text-gray-700 bg-white"
-            onchange="this.form.submit()">
-      <option value="newest" {% if request.GET.sort == "newest" %}selected{% endif %}>Newest First</option>
-      <option value="price_desc" {% if request.GET.sort == "price_desc" %}selected{% endif %}>Price High → Low</option>
-      <option value="price_asc" {% if request.GET.sort == "price_asc" %}selected{% endif %}>Price Low → High</option>
-    </select>
-  </form>
-</section>
+  <section class="mt-4 bg-gray-100 border-t border-b border-gray-300">
+    <div class="grid grid-cols-2">
+      <div class="relative border-r border-gray-300">
+        <button id="sort-btn" class="w-full h-12 flex items-center justify-center gap-2 text-sm font-bold tracking-wider text-gray-600" style="font-family: 'League Spartan', sans-serif;">
+          <span>SORT</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div id="sort-menu" class="absolute left-0 top-full mt-px w-full bg-white border border-gray-300 shadow-lg hidden z-10">
+          <a href="?{% if request.GET.wholesaler %}wholesaler={{ request.GET.wholesaler }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=newest" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">Newest First</a>
+          <a href="?{% if request.GET.wholesaler %}wholesaler={{ request.GET.wholesaler }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=price_desc" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">Price High → Low</a>
+          <a href="?{% if request.GET.wholesaler %}wholesaler={{ request.GET.wholesaler }}&{% endif %}{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}sort=price_asc" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">Price Low → High</a>
+        </div>
+      </div>
 
+      <div class="relative">
+        <button id="filter-btn" class="w-full h-12 flex items-center justify-center text-sm font-bold tracking-wider text-gray-600" style="font-family: 'League Spartan', sans-serif;">
+          <span>FILTER</span>
+        </button>
+        <div id="filter-menu" class="absolute right-0 top-full mt-px w-full bg-white border border-gray-300 shadow-lg hidden z-10">
+          <a href="?{% if request.GET.wholesaler %}wholesaler={{ request.GET.wholesaler }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">All Categories</a>
+          {% for c in categories %}
+            <a href="?{% if request.GET.wholesaler %}wholesaler={{ request.GET.wholesaler }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}category={{ c.id }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">{{ c.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- Products grid -->
-<section class="mt-6 grid gap-4 grid-cols-2 md:gap-6 md:grid-cols-3 xl:grid-cols-4">
-  {% for p in products %}
-    <a href="{% url 'catalog:product_detail' p.id %}" class="group block">
-      <!-- image: portrait 3:4, no border, no rounded -->
-      <div class="aspect-[3/4] w-full overflow-hidden bg-gray-200">
-  {% if p.image %}
-    <img src="{{ p.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
-  {% elif p.images.first %}
-    <img src="{{ p.images.first.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
-  {% endif %}
+  <section class="mt-6 grid gap-4 grid-cols-2 md:gap-6 md:grid-cols-3 xl:grid-cols-4 px-4 sm:px-6 lg:px-8">
+    {% for p in products %}
+      <a href="{% url 'catalog:product_detail' p.id %}" class="group block">
+        <div class="aspect-[3/4] w-full overflow-hidden bg-gray-200">
+          {% if p.image %}
+            <img src="{{ p.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+          {% elif p.images.first %}
+            <img src="{{ p.images.first.image.url }}" alt="{{ p.name }}" class="h-full w-full object-cover">
+          {% endif %}
+        </div>
+
+        <h3 class="mt-2 font-semibold text-gray-900">{{ p.name }}</h3>
+        <p class="mt-1 text-sm text-gray-600 oc-line-2">
+          {{ p.description|default_if_none:""|truncatechars:120 }}
+        </p>
+        <div class="mt-1 text-blue-600 font-extrabold">₹{{ p.wholesale_price }}</div>
+        </a>
+    {% empty %}
+      <p class="text-gray-600 col-span-full text-center">No products found for this selection.</p>
+    {% endfor %}
+  </section>
+
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sortBtn = document.getElementById('sort-btn');
+    const sortMenu = document.getElementById('sort-menu');
+    const filterBtn = document.getElementById('filter-btn');
+    const filterMenu = document.getElementById('filter-menu');
 
-      <!-- text -->
-      <h3 class="mt-2 font-semibold text-gray-900">{{ p.name }}</h3>
-      <p class="mt-1 text-sm text-gray-600 oc-line-2">
-        {{ p.description|default_if_none:""|truncatechars:120 }}
-      </p>
-      <div class="mt-1 text-blue-600 font-extrabold">₹{{ p.wholesale_price }}</div>
-      <!-- <div class="text-sm text-gray-500">MOQ: {{ p.minimum_order_qty|default:"6" }} pcs</div> -->
-    </a>
-  {% empty %}
-    <p class="text-gray-600">No products found.</p>
-  {% endfor %}
-</section>
+    if (sortBtn && sortMenu && filterBtn && filterMenu) {
+        function toggleDropdown(menu, otherMenu) {
+            menu.classList.toggle('hidden');
+            otherMenu.classList.add('hidden');
+        }
 
+        sortBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            toggleDropdown(sortMenu, filterMenu);
+        });
 
+        filterBtn.addEventListener('click', function(event) {
+            event.stopPropagation();
+            toggleDropdown(filterMenu, sortMenu);
+        });
 
-</div>
+        document.addEventListener('click', function(event) {
+            if (!sortMenu.contains(event.target) && !sortBtn.contains(event.target)) {
+                sortMenu.classList.add('hidden');
+            }
+            if (!filterMenu.contains(event.target) && !filterBtn.contains(event.target)) {
+                filterMenu.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

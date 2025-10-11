@@ -11,6 +11,12 @@ class SignupStep1Form(forms.Form):
     password_confirm = forms.CharField(widget=forms.PasswordInput, required=True, label="Confirm Password")
     terms = forms.BooleanField(required=True, error_messages={'required': 'You must agree to the terms.'})
 
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if User.objects.filter(username=phone_number).exists():
+            raise forms.ValidationError("An account with this phone number already exists.")
+        return phone_number
+
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get('password') != cleaned_data.get('password_confirm'):
@@ -19,16 +25,10 @@ class SignupStep1Form(forms.Form):
 
 # Step 2: Business Profile & Delivery Options
 class SignupStep2Form(forms.Form):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=False)
     shipping_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
     supports_doorstep = forms.BooleanField(required=False, initial=False, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
     supports_hub = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
-
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("An account with this email already exists.")
-        return email
 
 # Step 3: Bank Details
 class SignupStep3Form(forms.Form):

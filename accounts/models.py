@@ -1,6 +1,9 @@
 # accounts/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.conf import settings
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 
 class Organization(models.Model):
     WHOLESALER = "wholesaler"
@@ -25,13 +28,6 @@ class User(AbstractUser):
     organization = models.ForeignKey(
         Organization, on_delete=models.PROTECT, related_name="users", null=True, blank=True
     )
-
-from django.conf import settings
-from django.db import models
-from django.dispatch import receiver
-from django.db.models.signals import post_save
-
-# If using Django >= 3.1, use models.JSONField; else from django.contrib.postgres.fields import JSONField
 
 # --- UPDATED CustomerProfile Model ---
 class CustomerProfile(models.Model):

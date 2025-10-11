@@ -1,6 +1,6 @@
 # accounts/views.py
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -81,8 +81,8 @@ def signup(request):
                 )
                 
                 user = User.objects.create_user(
-                    username=data['email'], # Username is now from step 2 data
-                    email=data['email'],
+                    username=data['phone_number'],
+                    email=data.get('email', ''),
                     password=data['password'],
                     role=data['business_type'],
                     organization=organization
@@ -104,7 +104,10 @@ def signup(request):
                 
                 CustomerProfile.objects.filter(user=user).update(**profile_data)
                 
+                # Set the backend attribute on the user object before logging in
+                user.backend = 'accounts.backends.PhoneBackend'
                 login(request, user)
+                
                 messages.success(request, "Welcome! Your account has been created successfully.")
                 
                 if user.role == "wholesaler":
@@ -132,7 +135,6 @@ def signup(request):
 
     return render(request, template_name, context)
 
-# ... (rest of the views remain the same)
 # ... (rest of the views remain the same)
 
 @login_required
