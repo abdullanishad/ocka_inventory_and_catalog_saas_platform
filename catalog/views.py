@@ -160,17 +160,15 @@ def product_add(request):
                 new_images = request.FILES.getlist("new_images")
                 cover_choice = request.POST.get("cover_choice")
 
-                saved_images = []
                 for i, img in enumerate(new_images):
-                    product_img = ProductImage.objects.create(product=product, image=img, position=i)
-                    saved_images.append((f"new_{i}", product_img))
+                    ProductImage.objects.create(product=product, image=img, position=i)
 
                 # Set cover image
                 if cover_choice:
                     if cover_choice.startswith("new_"):
                         idx = int(cover_choice.split("_")[1])
-                        if 0 <= idx < len(saved_images):
-                            product.image = saved_images[idx][1].image  # set cover from ProductImage
+                        if 0 <= idx < len(new_images):
+                            product.image = new_images[idx]  # CORRECTED LOGIC
                             product.save()
                     elif cover_choice.isdigit():
                         try:
@@ -179,11 +177,10 @@ def product_add(request):
                             product.save()
                         except ProductImage.DoesNotExist:
                             pass
-                else:
-                    # Default: if no cover selected, use the first uploaded image
-                    if saved_images:
-                        product.image = saved_images[0][1].image
-                        product.save()
+                # Default: if no cover selected, use the first uploaded image
+                elif new_images:
+                    product.image = new_images[0]
+                    product.save()
 
             messages.success(request, "Product added successfully.")
             return redirect("catalog:wholesaler_dashboard")
