@@ -127,23 +127,18 @@ class Product(models.Model):
         return first.image.url if first else ""
 
     def save(self, *args, **kwargs):
-        if not self.sku:
+        # Check if the product is new (has no ID yet) and has no SKU
+        is_new = self.pk is None
+        super().save(*args, **kwargs)  # Save the object to get a primary key (self.pk)
+        
+        if is_new and not self.sku:
             owner_code = slugify(self.owner.name)[:3].upper() if hasattr(self.owner, "name") else "OWN"
             cat_code = (self.category.code or slugify(self.category.name)[:4].upper()) if self.category_id else "CAT"
-            last_sku = (
-                Product.objects
-                .filter(owner=self.owner, category=self.category, sku__startswith=f"{owner_code}-{cat_code}-")
-                .aggregate(Max("sku"))
-            )["sku__max"]
-            if last_sku:
-                try:
-                    seq = int(last_sku.split("-")[-1]) + 1
-                except ValueError:
-                    seq = 1
-            else:
-                seq = 1
-            self.sku = f"{owner_code}-{cat_code}-{seq:04d}"
-        super().save(*args, **kwargs)
+            # Use the product's own unique ID to guarantee a unique SKU
+            self.sku = f"{owner_code}-{cat_code}-{self.pk:04d}"
+            # Save again, but only update the SKU field to avoid recursion
+            super().save(update_fields=['sku'])
+
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
