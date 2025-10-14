@@ -156,10 +156,10 @@
         </div>
         <div class="flex gap-2">
           {% if page_obj.has_previous %}
-            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Prev</a>
+            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.previous_page_number }}&{{ pagination_params }}">Prev</a>
           {% endif %}
           {% if page_obj.has_next %}
-            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Next</a>
+            <a class="px-3 py-1 border rounded-md text-sm" href="?page={{ page_obj.next_page_number }}&{{ pagination_params }}">Next</a>
           {% endif %}
         </div>
       </div>

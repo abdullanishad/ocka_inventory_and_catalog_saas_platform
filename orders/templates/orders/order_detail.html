@@ -59,101 +59,112 @@
   </div>
   {% endif %}
 
-  {% if order.status in 'PAID,SHIPPED,DELIVERED,COMPLETED' %}
   <div class="bg-white border rounded-2xl p-6 mb-6">
     <h3 class="font-semibold text-gray-900 mb-6">Order Tracking</h3>
-    <ol>
-      <li class="relative pb-8">
-        {% if order.status in 'SHIPPED,DELIVERED,COMPLETED' %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 bg-blue-600"></div>
-        {% else %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 border-l-2 border-dashed border-gray-300"></div>
-        {% endif %}
-        <div class="relative flex items-start">
-          <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
-            <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
-          </span>
-          <div class="ml-4">
-            <h4 class="font-semibold text-gray-900">Order Confirmed</h4>
-            <p class="text-sm text-gray-500">Your order was placed on {{ order.date|date:"D, M j" }}.</p>
-          </div>
+    {% if order.status == 'REJECTED' or order.status == 'CANCELLED' %}
+      <div class="flex items-center gap-4">
+        <div class="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center ring-4 ring-white">
+          <svg class="w-6 h-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </div>
-      </li>
+        <div>
+          <h4 class="font-semibold text-lg text-red-700">{{ order.get_status_display }}</h4>
+          <p class="text-sm text-gray-600">This order is no longer active.</p>
+        </div>
+      </div>
+    {% else %}
+      <ol>
+        {% with all_statuses="AWAITING_PAYMENT,PAID,SHIPPED,DELIVERED,COMPLETED" completed_statuses="PAID,SHIPPED,DELIVERED,COMPLETED" shipped_statuses="SHIPPED,DELIVERED,COMPLETED" delivered_statuses="DELIVERED,COMPLETED" %}
+        <li class="relative pb-8">
+          <div class="absolute top-1 left-4 -ml-px h-full w-0.5 {% if order.status in all_statuses %}bg-blue-600{% else %}border-l-2 border-dashed border-gray-300{% endif %}"></div>
+          <div class="relative flex items-start">
+            <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
+              <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+            </span>
+            <div class="ml-4">
+              <h4 class="font-semibold text-gray-900">Order Placed</h4>
+              <p class="text-sm text-gray-500">Waiting for wholesaler to confirm.</p>
+            </div>
+          </div>
+        </li>
 
-      <li class="relative pb-8">
-        {% if order.status in 'DELIVERED,COMPLETED' %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 bg-blue-600"></div>
-        {% else %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 border-l-2 border-dashed border-gray-300"></div>
-        {% endif %}
-        <div class="relative flex items-start">
-          {% if order.status in 'SHIPPED,DELIVERED,COMPLETED' %}
-          <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
-            <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
-          </span>
-          {% else %}
-          <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300">
-            <span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span>
-          </span>
-          {% endif %}
-          <div class="ml-4">
-            <h4 class="font-semibold {% if order.status in 'SHIPPED,DELIVERED,COMPLETED' %}text-gray-900{% else %}text-gray-500{% endif %}">Shipped</h4>
-            {% if order.shipment %}
-              <p class="text-sm text-gray-500">Shipped on {{ order.shipment.shipped_on|date:"D, M j" }}.</p>
-              <div class="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
-                  <strong>Courier:</strong> {{ order.shipment.courier_name }} <br>
-                  <strong>Tracking ID:</strong> {{ order.shipment.tracking_id }}
-              </div>
+        <li class="relative pb-8">
+          <div class="absolute top-1 left-4 -ml-px h-full w-0.5 {% if order.status in completed_statuses %}bg-blue-600{% else %}border-l-2 border-dashed border-gray-300{% endif %}"></div>
+          <div class="relative flex items-start">
+            {% if order.status in all_statuses %}
+              <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
+                <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+              </span>
             {% else %}
-              <p class="text-sm text-gray-500">Awaiting shipment from the wholesaler.</p>
+              <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300"><span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span></span>
             {% endif %}
+            <div class="ml-4">
+              <h4 class="font-semibold {% if order.status in all_statuses %}text-gray-900{% else %}text-gray-500{% endif %}">Order Confirmed</h4>
+              <p class="text-sm text-gray-500">Wholesaler has confirmed the order.</p>
+            </div>
           </div>
-        </div>
-      </li>
+        </li>
 
-      <li class="relative pb-8">
-        {% if order.status in 'DELIVERED,COMPLETED' %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 bg-blue-600"></div>
-        {% else %}
-        <div class="absolute top-1 left-4 -ml-px h-full w-0.5 border-l-2 border-dashed border-gray-300"></div>
-        {% endif %}
-        <div class="relative flex items-start">
-          {% if order.status in 'DELIVERED,COMPLETED' %}
-          <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
-            <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
-          </span>
-          {% else %}
-          <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300">
-            <span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span>
-          </span>
-          {% endif %}
-          <div class="ml-4">
-            <h4 class="font-semibold {% if order.status in 'DELIVERED,COMPLETED' %}text-gray-900{% else %}text-gray-500{% endif %}">Out For Delivery</h4>
-            <p class="text-sm text-gray-500">Your order is on its way to you.</p>
+        <li class="relative pb-8">
+          <div class="absolute top-1 left-4 -ml-px h-full w-0.5 {% if order.status in shipped_statuses %}bg-blue-600{% else %}border-l-2 border-dashed border-gray-300{% endif %}"></div>
+          <div class="relative flex items-start">
+            {% if order.status in completed_statuses %}
+              <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
+                <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+              </span>
+            {% else %}
+              <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300"><span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span></span>
+            {% endif %}
+            <div class="ml-4">
+              <h4 class="font-semibold {% if order.status in completed_statuses %}text-gray-900{% else %}text-gray-500{% endif %}">Payment Complete</h4>
+              <p class="text-sm text-gray-500">The payment has been successfully processed.</p>
+            </div>
           </div>
-        </div>
-      </li>
+        </li>
+        
+        <li class="relative pb-8">
+          <div class="absolute top-1 left-4 -ml-px h-full w-0.5 {% if order.status in delivered_statuses %}bg-blue-600{% else %}border-l-2 border-dashed border-gray-300{% endif %}"></div>
+          <div class="relative flex items-start">
+            {% if order.status in shipped_statuses %}
+              <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
+                <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+              </span>
+            {% else %}
+              <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300"><span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span></span>
+            {% endif %}
+            <div class="ml-4">
+              <h4 class="font-semibold {% if order.status in shipped_statuses %}text-gray-900{% else %}text-gray-500{% endif %}">Shipped</h4>
+              {% if order.shipment %}
+                <p class="text-sm text-gray-500">Shipped on {{ order.shipment.shipped_on|date:"D, M j" }}.</p>
+                <div class="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border">
+                    <strong>Courier:</strong> {{ order.shipment.courier_name }} <br>
+                    <strong>Tracking ID:</strong> {{ order.shipment.tracking_id }}
+                </div>
+              {% else %}
+                <p class="text-sm text-gray-500">Awaiting shipment from the wholesaler.</p>
+              {% endif %}
+            </div>
+          </div>
+        </li>
 
-      <li class="relative">
-        <div class="relative flex items-start">
-          {% if order.status in 'DELIVERED,COMPLETED' %}
-          <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
-            <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
-          </span>
-          {% else %}
-          <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300">
-            <span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span>
-          </span>
-          {% endif %}
-          <div class="ml-4">
-            <h4 class="font-semibold {% if order.status in 'DELIVERED,COMPLETED' %}text-gray-900{% else %}text-gray-500{% endif %}">Delivered</h4>
-            <p class="text-sm text-gray-500">Your order has been delivered.</p>
+        <li class="relative">
+          <div class="relative flex items-start">
+            {% if order.status in delivered_statuses %}
+              <span class="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center ring-4 ring-white">
+                <svg class="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.052-.143z" clip-rule="evenodd" /></svg>
+              </span>
+            {% else %}
+              <span class="h-8 w-8 rounded-full bg-white flex items-center justify-center ring-4 ring-gray-300"><span class="h-2.5 w-2.5 bg-gray-300 rounded-full"></span></span>
+            {% endif %}
+            <div class="ml-4">
+              <h4 class="font-semibold {% if order.status in delivered_statuses %}text-gray-900{% else %}text-gray-500{% endif %}">Delivered</h4>
+              <p class="text-sm text-gray-500">Your order has been delivered.</p>
+            </div>
           </div>
-        </div>
-      </li>
-    </ol>
+        </li>
+        {% endwith %}
+      </ol>
+    {% endif %}
   </div>
-  {% endif %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 bg-white border rounded-2xl p-4">

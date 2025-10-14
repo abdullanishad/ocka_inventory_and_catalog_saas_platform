@@ -160,6 +160,11 @@ class OrderListView(LoginRequiredMixin, ListView):
             counts[status_value] = base.filter(status=status_value).count()
 
         tabs = [("all", "All")] + list(Order.Status.choices)
+        
+        # Prepare query parameters for pagination, excluding the 'page' parameter
+        pagination_params = self.request.GET.copy()
+        if 'page' in pagination_params:
+            del pagination_params['page']
 
         ctx.update({
             "counts": counts,
@@ -167,6 +172,7 @@ class OrderListView(LoginRequiredMixin, ListView):
             "tabs": tabs,
             "active_status": self.request.GET.get("status", "all"),
             "is_wholesaler": is_wholesaler,
+            "pagination_params": pagination_params.urlencode(),
         })
         return ctx
 
