@@ -160,27 +160,26 @@ def product_add(request):
                 new_images = request.FILES.getlist("new_images")
                 cover_choice = request.POST.get("cover_choice")
 
-                for i, img in enumerate(new_images):
-                    ProductImage.objects.create(product=product, image=img, position=i)
+                saved_images = []
+                for i, img_file in enumerate(new_images):
+                    product_img_instance = ProductImage.objects.create(product=product, image=img_file, position=i)
+                    saved_images.append({'id': product_img_instance.id, 'image_field': product_img_instance.image, 'choice_key': f"new_{i}"})
 
                 # Set cover image
+                cover_image_set = False
                 if cover_choice:
-                    if cover_choice.startswith("new_"):
-                        idx = int(cover_choice.split("_")[1])
-                        if 0 <= idx < len(new_images):
-                            product.image = new_images[idx]  # CORRECTED LOGIC
+                    for saved_img in saved_images:
+                        if saved_img['choice_key'] == cover_choice:
+                            product.image = saved_img['image_field']
                             product.save()
-                    elif cover_choice.isdigit():
-                        try:
-                            chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
-                            product.image = chosen_img.image
-                            product.save()
-                        except ProductImage.DoesNotExist:
-                            pass
-                # Default: if no cover selected, use the first uploaded image
-                elif new_images:
-                    product.image = new_images[0]
+                            cover_image_set = True
+                            break
+                
+                # Default to first image if no cover was chosen or found
+                if not cover_image_set and saved_images:
+                    product.image = saved_images[0]['image_field']
                     product.save()
+
 
             messages.success(request, "Product added successfully.")
             return redirect("catalog:wholesaler_dashboard")
@@ -236,22 +235,35 @@ def product_edit(request, pk):
                 new_images = request.FILES.getlist("new_images")
                 cover_choice = request.POST.get("cover_choice")
 
-                for i, img in enumerate(new_images):
-                    ProductImage.objects.create(product=product, image=img, position=i)
+                saved_images = []
+                for i, img_file in enumerate(new_images):
+                    product_img_instance = ProductImage.objects.create(product=product, image=img_file, position=i)
+                    saved_images.append({'id': product_img_instance.id, 'image_field': product_img_instance.image, 'choice_key': f"new_{i}"})
 
                 if cover_choice:
-                    if cover_choice.startswith("new_"):
-                        idx = int(cover_choice.split("_")[1])
-                        if idx < len(new_images):
-                            product.image = new_images[idx]
+                    # Check if the chosen cover is a newly uploaded image
+                    is_new_cover = False
+                    for saved_img in saved_images:
+                        if saved_img['choice_key'] == cover_choice:
+                            product.image = saved_img['image_field']
                             product.save()
-                    elif cover_choice.isdigit():
+                            is_new_cover = True
+                            break
+                    
+                    # If not a new image, it must be an existing one
+                    if not is_new_cover and cover_choice.isdigit():
                         try:
                             chosen_img = ProductImage.objects.get(id=int(cover_choice), product=product)
                             product.image = chosen_img.image
                             product.save()
                         except ProductImage.DoesNotExist:
                             pass
+                
+                # If the product had no main image before and new images were added, set the first one as cover
+                elif not product.image and saved_images:
+                    product.image = saved_images[0]['image_field']
+                    product.save()
+
 
             messages.success(request, "Product updated successfully.")
             return redirect("catalog:wholesaler_dashboard")
@@ -431,3 +443,9 @@ def home(request):
         "categories": categories,
         "wholesalers": wholesalers,
     })
+
+def help_support(request):
+    """
+    Renders the help and support page.
+    """
+    return render(request, "catalog/help_support.html")
