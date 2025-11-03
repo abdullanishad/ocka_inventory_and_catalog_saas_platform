@@ -1,16 +1,18 @@
 # accounts/forms.py
 from django import forms
 from .models import User, Organization, CustomerProfile
+from .msg91_client import verify_otp  # <-- CHANGE THIS IMPORT
 
 # Step 1: Core Account Details
 class SignupStep1Form(forms.Form):
     business_name = forms.CharField(max_length=200, required=True)
     business_type = forms.ChoiceField(choices=Organization.ORG_TYPES, widget=forms.RadioSelect, required=True)
     phone_number = forms.CharField(max_length=20, required=True)
-    # --- ADD THE OTP FIELD ---
-    otp = forms.CharField(max_length=6, required=True, label="OTP",
-                          help_text="Enter the 6-digit code sent to your phone.")
+    # --- UPDATE OTP FIELD LENGTH ---
+    otp = forms.CharField(max_length=4, required=True, label="OTP",
+                          help_text="Enter the 4-digit code sent to your phone.")
     
+    password = forms.CharField(widget=forms.PasswordInput, required=True, min_length=8)
     password = forms.CharField(widget=forms.PasswordInput, required=True, min_length=8)
     password_confirm = forms.CharField(widget=forms.PasswordInput, required=True, label="Confirm Password")
     terms = forms.BooleanField(required=True, error_messages={'required': 'You must agree to the terms.'})
@@ -36,6 +38,7 @@ class SignupStep1Form(forms.Form):
             if not verify_otp(phone_number, otp):
                 self.add_error('otp', "Invalid or expired OTP. Please try again.")
         # --- END OF ADDITION ---
+        
         return cleaned_data
 
 # Step 2: Business Profile & Delivery Options

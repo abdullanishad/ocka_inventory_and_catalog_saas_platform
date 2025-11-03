@@ -9,7 +9,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
-from .twilio_client import send_otp  # <-- IMPORT THE SEND FUNCTION
+from .msg91_client import send_otp  # <-- IMPORT THE SEND FUNCTION
 
 # Updated form imports
 from .forms import (
