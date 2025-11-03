@@ -86,11 +86,12 @@
     <h3 class="text-sm font-semibold text-gray-900 mb-2">Available Sizes</h3>
     <div class="flex gap-2 flex-wrap">
       {% for size, qty in product.size_stock_display.items %}
-        <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white">
+        <span class="px-3 py-1 rounded-full border text-sm text-gray-800 bg-white"
+              title="{{ qty }} in stock">
           {{ size }}
         </span>
       {% empty %}
-        <span class="text-sm text-gray-400">No sizes listed</span>
+        <span class="text-sm text-gray-400">This product is out of stock.</span>
       {% endfor %}
     </div>
   </div>

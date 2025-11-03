@@ -186,6 +186,12 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
 
+# --- ADD THIS SECTION FOR TWILIO ---
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
+# --- END OF ADDITION ---
+
 AUTHENTICATION_BACKENDS = [
     'accounts.backends.PhoneBackend',
     'django.contrib.auth.backends.ModelBackend',

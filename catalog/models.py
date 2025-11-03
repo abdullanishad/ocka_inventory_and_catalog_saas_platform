@@ -156,14 +156,27 @@ class Product(models.Model):
     def size_stock_display(self):
         if not self.pk:
             return {}
-        out = {}
+
+        # 1. Get the current stock quantities, mapped by size name
+        current_stock = {}
         for row in self.size_stocks.select_related("size"):
-            out[row.size.name] = out.get(row.size.name, 0) + row.quantity
-        mapping = CategorySize.objects.filter(category=self.category).select_related("size") if self.category_id else []
-        for m in mapping:
-            if m.size.name not in out:
-                out[m.size.name] = 0
-        return out
+            current_stock[row.size.name] = current_stock.get(row.size.name, 0) + row.quantity
+
+        # 2. Get the correctly ordered sizes for this product's category
+        # CategorySize.Meta ordering is ["order", "size__name"]
+        ordered_category_sizes = CategorySize.objects.filter(category=self.category).select_related("size") if self.category_id else []
+
+        # 3. Build the ordered output dictionary
+        ordered_out = {}
+        for cs in ordered_category_sizes:
+            size_name = cs.size.name
+            stock_qty = current_stock.get(size_name, 0)
+            
+            # 4. FIX: Only add the size to the dict if stock is available
+            if stock_qty > 0:
+                ordered_out[size_name] = stock_qty
+        
+        return ordered_out
 
     @property
     def total_stock(self) -> int:

@@ -7,6 +7,10 @@ class SignupStep1Form(forms.Form):
     business_name = forms.CharField(max_length=200, required=True)
     business_type = forms.ChoiceField(choices=Organization.ORG_TYPES, widget=forms.RadioSelect, required=True)
     phone_number = forms.CharField(max_length=20, required=True)
+    # --- ADD THE OTP FIELD ---
+    otp = forms.CharField(max_length=6, required=True, label="OTP",
+                          help_text="Enter the 6-digit code sent to your phone.")
+    
     password = forms.CharField(widget=forms.PasswordInput, required=True, min_length=8)
     password_confirm = forms.CharField(widget=forms.PasswordInput, required=True, label="Confirm Password")
     terms = forms.BooleanField(required=True, error_messages={'required': 'You must agree to the terms.'})
@@ -19,14 +23,25 @@ class SignupStep1Form(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        if cleaned_data.get('password') != cleaned_data.get('password_confirm'):
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        phone_number = cleaned_data.get('phone_number')
+        otp = cleaned_data.get('otp')
+
+        if password and password_confirm and password != password_confirm:
             self.add_error('password_confirm', "Passwords do not match.")
+        
+        # --- ADD OTP VERIFICATION LOGIC ---
+        if phone_number and otp:
+            if not verify_otp(phone_number, otp):
+                self.add_error('otp', "Invalid or expired OTP. Please try again.")
+        # --- END OF ADDITION ---
         return cleaned_data
 
 # Step 2: Business Profile & Delivery Options
 class SignupStep2Form(forms.Form):
     email = forms.EmailField(required=False)
-    shipping_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
+    shipping_address = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=True)
     supports_doorstep = forms.BooleanField(required=False, initial=False, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
     supports_hub = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'}))
 

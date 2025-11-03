@@ -40,8 +40,18 @@
             <div class="mt-1 flex">
                 <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">+91</span>
                 {{ form.phone_number }}
+                <button type="button" id="send-otp-btn" class="flex-shrink-0 ml-2 px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Send OTP
+                </button>
             </div>
+            <p id="otp-status" class="text-xs mt-1 text-green-600"></p>
             {% for error in form.phone_number.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div id="otp-field-container" class="hidden">
+            <label class="block text-sm font-medium text-gray-700">Verification Code</label>
+            {{ form.otp }}
+            {% for error in form.otp.errors %}<p class="text-red-500 text-xs mt-1">{{ error }}</p>{% endfor %}
         </div>
 
         <div>
@@ -72,17 +82,22 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const fields = ['business_name', 'phone_number', 'password', 'password_confirm'];
+    // --- 1. FIELD STYLING ---
+    const fields = ['business_name', 'phone_number', 'password', 'password_confirm', 'otp'];
     fields.forEach(fieldName => {
         const field = document.querySelector(`[name="${fieldName}"]`);
         if (field) {
             field.classList.add('appearance-none', 'block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-md', 'shadow-sm', 'focus:outline-none', 'focus:ring-blue-500', 'focus:border-blue-500', 'sm:text-sm');
             if (fieldName === 'phone_number') {
-                field.classList.add('rounded-l-none');
+                field.classList.add('rounded-l-none', 'rounded-r-none'); // Adjust for buttons
+            }
+            if (fieldName === 'otp') {
+                field.setAttribute('placeholder', '123456');
             }
         }
     });
 
+    // --- 2. BUSINESS TYPE TOGGLE ---
     const selector = document.getElementById('business-type-selector');
     const buttons = selector.querySelectorAll('.business-type-btn');
     const hiddenRadios = document.querySelectorAll('input[name="business_type"]');
@@ -108,6 +123,55 @@ document.addEventListener('DOMContentLoaded', function() {
 
     buttons.forEach(btn => {
         btn.classList.add('px-3', 'py-2', 'rounded', 'text-sm', 'font-medium', 'transition-colors');
+    });
+
+    // --- 3. OTP SENDING LOGIC ---
+    const sendOtpBtn = document.getElementById('send-otp-btn');
+    const phoneInput = document.querySelector('[name="phone_number"]');
+    const otpContainer = document.getElementById('otp-field-container');
+    const otpStatus = document.getElementById('otp-status');
+
+    sendOtpBtn.addEventListener('click', async function() {
+        const phone = phoneInput.value;
+        if (!phone) {
+            otpStatus.textContent = "Please enter a phone number first.";
+            otpStatus.className = "text-xs mt-1 text-red-600";
+            return;
+        }
+
+        // Disable button and show loading text
+        sendOtpBtn.disabled = true;
+        sendOtpBtn.textContent = "Sending...";
+        otpStatus.textContent = "";
+
+        try {
+            const response = await fetch("{% url 'accounts:send_otp' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+                },
+                body: JSON.stringify({ phone_number: phone })
+            });
+
+            if (response.ok) {
+                otpContainer.classList.remove('hidden');
+                otpStatus.textContent = "OTP sent successfully!";
+                otpStatus.className = "text-xs mt-1 text-green-600";
+                sendOtpBtn.textContent = "Resend";
+            } else {
+                const data = await response.json();
+                otpStatus.textContent = data.error || "Failed to send OTP.";
+                otpStatus.className = "text-xs mt-1 text-red-600";
+                sendOtpBtn.textContent = "Send OTP";
+            }
+        } catch (error) {
+            otpStatus.textContent = "An error occurred. Please try again.";
+            otpStatus.className = "text-xs mt-1 text-red-600";
+            sendOtpBtn.textContent = "Send OTP";
+        } finally {
+            sendOtpBtn.disabled = false;
+        }
     });
 });
 </script>

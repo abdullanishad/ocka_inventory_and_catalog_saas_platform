@@ -23,3 +23,4 @@ svgwrite==1.4.3
 Tree==0.2.4
 urllib3==2.5.0
 whitenoise==6.11.0
+twilio  # <-- ADD THIS LINE

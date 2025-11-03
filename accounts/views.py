@@ -6,6 +6,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
 from django.db import transaction
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+from .twilio_client import send_otp  # <-- IMPORT THE SEND FUNCTION
 
 # Updated form imports
 from .forms import (
@@ -29,6 +33,29 @@ class CustomLoginView(LoginView):
         elif user.role == "wholesaler":
             return "/catalog/dashboard/wholesaler/"
         return "/"
+
+
+# --- NEW VIEW TO SEND THE OTP ---
+@require_POST
+def send_otp_view(request):
+    try:
+        data = json.loads(request.body)
+        phone_number = data.get('phone_number')
+        if not phone_number:
+            return JsonResponse({'success': False, 'error': 'Phone number not provided.'}, status=400)
+        
+        result = send_otp(phone_number)
+        
+        if result.get('success'):
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'error': result.get('error', 'Failed to send OTP.')}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid request.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+# --- END OF NEW VIEW ---
 
 
 # --- NEW MULTI-STEP SIGNUP VIEW ---
