@@ -15,7 +15,6 @@ python-dateutil==2.9.0.post0
 python-decouple
 python-dotenv
 razorpay
-requests  # <-- ADD THIS LINE
 s3transfer==0.14.0
 setuptools==80.9.0
 six==1.17.0

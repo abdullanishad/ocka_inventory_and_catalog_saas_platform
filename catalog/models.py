@@ -70,26 +70,65 @@ class MoqOption(models.Model):
         ordering = ['id']
 
     @property
+    def _ordered_config_items(self) -> list[tuple[str, int]]:
+        """
+        Returns a list of (size_name, quantity) tuples,
+        sorted according to the product's CategorySize order.
+        """
+        # Use a cache on the instance to avoid re-calculating this
+        if not hasattr(self, '_cached_ordered_config'):
+            ordered_items = []
+            
+            # 1. Get the correctly ordered size names from the product's category
+            ordered_size_names = list(
+                CategorySize.objects.filter(category=self.product.category)
+                .select_related("size")
+                .values_list("size__name", flat=True)
+            )
+            
+            # 2. Iterate over the *correct* order
+            for size_name in ordered_size_names:
+                # 3. Check if this size is part of the pack configuration
+                if size_name in self.configuration:
+                    quantity = int(self.configuration.get(size_name, 0))
+                    ordered_items.append((size_name, quantity))
+            
+            self._cached_ordered_config = ordered_items
+        return self._cached_ordered_config
+
+    @property
     def total_quantity(self) -> int:
         """Calculates the total number of items in the pack."""
-        return sum(self.configuration.values())
+        # This sum is order-agnostic, but we can use the helper
+        return sum(qty for _, qty in self._ordered_config_items)
 
     @property
     def sizes_str(self) -> str:
         """Returns the sizes as a string, e.g., 'S, M, L'."""
-        return ", ".join(self.configuration.keys())
+        # Use the ordered helper
+        return ", ".join(size_name for size_name, _ in self._ordered_config_items)
 
     @property
     def ratio_str(self) -> str:
         """Returns the ratio as a string, e.g., '1:2:1'."""
-        return ":".join(str(v) for v in self.configuration.values())
+        # Use the ordered helper
+        return ":".join(str(qty) for _, qty in self._ordered_config_items)
 
     @property
     def display_label(self) -> str:
         """Generates the full label for the cart, e.g., '4 pcs | S, M, L | 1:2:1'."""
         if not self.configuration:
             return ""
-        return f"{self.total_quantity} pcs | {self.sizes_str} | {self.ratio_str}"
+        
+        # This one call will populate the cache for the other properties
+        ordered_items = self._ordered_config_items
+        
+        # Now use the properties, which will use the cached ordered list
+        total_qty_str = str(self.total_quantity)
+        sizes_str_val = self.sizes_str
+        ratio_str_val = self.ratio_str
+
+        return f"{total_qty_str} pcs | {sizes_str_val} | {ratio_str_val}"
 
     def __str__(self):
         return f"{self.product.name} - {self.display_label}"

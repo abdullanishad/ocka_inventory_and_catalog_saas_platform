@@ -186,10 +186,6 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
 
-# --- UPDATE THIS SECTION FOR MSG91 ---
-MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY')
-# MSG91_TEMPLATE_ID = os.environ.get('MSG91_TEMPLATE_ID')  <-- DELETE THIS LINE
-# --- END OF UPDATE ---
 
 AUTHENTICATION_BACKENDS = [
     'accounts.backends.PhoneBackend',
