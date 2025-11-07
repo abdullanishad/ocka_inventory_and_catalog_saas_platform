@@ -91,7 +91,12 @@ class MoqOption(models.Model):
                 # 3. Check if this size is part of the pack configuration
                 if size_name in self.configuration:
                     quantity = int(self.configuration.get(size_name, 0))
-                    ordered_items.append((size_name, quantity))
+                    
+                    # --- THIS IS THE FIX ---
+                    # Only add the size to the list if its quantity is > 0
+                    if quantity > 0:
+                        ordered_items.append((size_name, quantity))
+                    # --- END OF FIX ---
             
             self._cached_ordered_config = ordered_items
         return self._cached_ordered_config

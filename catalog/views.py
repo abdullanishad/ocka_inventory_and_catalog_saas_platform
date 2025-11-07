@@ -1,4 +1,4 @@
-# catalog/views.py
+# In abdullanishad/ocka_inventory_and_catalog_saas_platform/ocka_inventory_and_catalog_saas_platform-ba7b91b8be5ddbfe7b8624e9500ed82705a0baab/catalog/views.py
 
 import json
 import csv
@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
+# --- 1. ADD Prefetch IMPORT ---
 from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper, Prefetch, Avg, Value, DecimalField
 from django.db.models.functions import TruncDay, Coalesce
 from django.utils import timezone
@@ -29,10 +30,15 @@ def require_wholesaler(user) -> bool:
 # Public/Retailer Views
 # ---------------------------------------------------------------------
 def product_list(request):
-    # --- FIX: Only show products from organizations that have users ---
+    # --- 2. UPDATE THE QUERYSET HERE ---
     qs = Product.objects.filter(is_active=True, owner__users__isnull=False).distinct().annotate(
         total_quantity=Coalesce(Sum('size_stocks__quantity'), Value(0))
-    ).filter(total_quantity__gt=0).select_related("owner", "category")
+    ).filter(total_quantity__gt=0).select_related("owner", "category").prefetch_related(
+        # Prefetch the data needed for the size_stock_display property
+        Prefetch('size_stocks', queryset=SizeStock.objects.select_related('size')),
+        Prefetch('category__category_sizes', queryset=CategorySize.objects.select_related('size'))
+    )
+    # --- END OF QUERYSET UPDATE ---
 
     wholesaler_id = request.GET.get("wholesaler")
     category_id = request.GET.get("category")
@@ -70,6 +76,8 @@ def product_list(request):
         "categories": Category.objects.all(),
     }
     return render(request, "catalog/product_list.html", context)
+
+# ... (rest of your views.py file) ...
 
 def product_detail(request, pk):
     product = get_object_or_404(Product.objects.select_related("category", "owner"), pk=pk, is_active=True)

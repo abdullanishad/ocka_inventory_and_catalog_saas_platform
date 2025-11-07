@@ -78,9 +78,16 @@
         </div>
 
         <h3 class="mt-2 font-semibold text-gray-900">{{ p.name }}</h3>
-        <p class="mt-1 text-sm text-gray-600 oc-line-2">
-          {{ p.description|default_if_none:""|truncatechars:120 }}
-        </p>
+        
+        <div class="mt-1 flex flex-wrap gap-1" aria-label="Available sizes">
+          {% for size_name in p.size_stock_display.keys %}
+            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+              {{ size_name }}
+            </span>
+          {% empty %}
+            <span class="text-xs text-gray-400">Out of Stock</span>
+          {% endfor %}
+        </div>
         <div class="mt-1 text-blue-600 font-extrabold">₹{{ p.wholesale_price }}</div>
         </a>
     {% empty %}
