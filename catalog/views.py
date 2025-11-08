@@ -2,22 +2,34 @@
 
 import json
 import csv
+# --- 1. Import Q for complex lookups and Decimal for prices ---
+from decimal import Decimal, InvalidOperation
+from django.db.models import Q, Sum, Count, F, FloatField, ExpressionWrapper, Prefetch, Avg, Value, DecimalField
+# --- (rest of your imports) ---
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
-# --- 1. ADD Prefetch IMPORT ---
 from django.db.models import Sum, Count, F, FloatField, ExpressionWrapper, Prefetch, Avg, Value, DecimalField
 from django.db.models.functions import TruncDay, Coalesce
 from django.utils import timezone
 from datetime import timedelta
 from django.views.decorators.http import require_POST
 
+
 from accounts.models import Organization, CustomerProfile
 from orders.models import Order, OrderItem
-from .models import Product, Category, SizeStock, Size, ProductImage, CategorySize, MoqOption, Hero, TopBrand
+# --- 2. Import Color and Size models ---
+from .models import (
+    Product, Category, SizeStock, Size, ProductImage, CategorySize, 
+    MoqOption, Hero, TopBrand, Color, Fabric
+)
 from .forms import ProductForm
+
+# 1. Make sure all models are imported
+from .models import Product, Category, SizeStock, Size, ProductImage, CategorySize, MoqOption, Hero, TopBrand, Color
+from .forms import ProductForm, ProductFilterForm # 2. Import new form
 
 
 # ---------------------------------------------------------------------
@@ -26,60 +38,83 @@ from .forms import ProductForm
 def require_wholesaler(user) -> bool:
     return getattr(user, "role", None) == "wholesaler" and getattr(user, "organization", None)
 
-# ---------------------------------------------------------------------
-# Public/Retailer Views
-# ---------------------------------------------------------------------
+# --- REPLACE your 'product_list' view with this ---
 def product_list(request):
-    # --- 2. UPDATE THE QUERYSET HERE ---
+    # 1. Base query for all available products
     qs = Product.objects.filter(is_active=True, owner__users__isnull=False).distinct().annotate(
         total_quantity=Coalesce(Sum('size_stocks__quantity'), Value(0))
     ).filter(total_quantity__gt=0).select_related("owner", "category").prefetch_related(
-        # Prefetch the data needed for the size_stock_display property
         Prefetch('size_stocks', queryset=SizeStock.objects.select_related('size')),
         Prefetch('category__category_sizes', queryset=CategorySize.objects.select_related('size'))
     )
-    # --- END OF QUERYSET UPDATE ---
 
+    # 2. Pre-filter by wholesaler if ?wholesaler=ID is in URL
     wholesaler_id = request.GET.get("wholesaler")
-    category_id = request.GET.get("category")
-    sort = request.GET.get("sort", "newest")
-
     if wholesaler_id:
         try:
             qs = qs.filter(owner_id=int(wholesaler_id))
         except (TypeError, ValueError):
             pass
 
-    if category_id:
-        try:
-            qs = qs.filter(category_id=int(category_id))
-        except (TypeError, ValueError):
-            pass
+    # 3. Get the *actual* available filter options based on the product list
+    product_ids = qs.values_list('id', flat=True)
+    categories_qs = Category.objects.filter(product__id__in=product_ids).distinct()
+    sizes_qs = Size.objects.filter(sizestock__product__id__in=product_ids).distinct()
+    colors_qs = Color.objects.filter(products__id__in=product_ids).distinct()
 
-    sort_map = {
-        "newest": "-id",
-        "price_desc": "-wholesale_price",
-        "price_asc": "wholesale_price",
-    }
-    qs = qs.order_by(sort_map.get(sort, "-id"))
+    # 4. Initialize the form with data from the URL AND our dynamic querysets
+    filter_form = ProductFilterForm(
+        request.GET, 
+        categories_qs=categories_qs,
+        sizes_qs=sizes_qs,
+        colors_qs=colors_qs
+    )
+    
+    # 5. Apply filters if the form is submitted and valid
+    if filter_form.is_valid():
+        cd = filter_form.cleaned_data
+        
+        if cd['categories']:
+            qs = qs.filter(category__in=cd['categories'])
+        if cd['colors']:
+            qs = qs.filter(colors__in=cd['colors'])
+        if cd['sizes']:
+            qs = qs.filter(size_stocks__size__in=cd['sizes'])
+        if cd['min_price']:
+            qs = qs.filter(wholesale_price__gte=cd['min_price'])
+        if cd['max_price']:
+            qs = qs.filter(wholesale_price__lte=cd['max_price'])
+            
+        sort = cd.get('sort') or 'newest'
+        sort_map = {
+            "newest": "-id",
+            "price_desc": "-wholesale_price",
+            "price_asc": "wholesale_price",
+        }
+        qs = qs.order_by(sort_map.get(sort, "-id"))
+    
+    else:
+        qs = qs.order_by("-id") # Default sort
 
-    # --- FIX: Only show wholesalers that have users ---
+    # 6. Get the wholesaler list for the rail (this query is separate and always runs)
     wholesalers = Organization.objects.filter(
         org_type="wholesaler", users__isnull=False
     ).distinct().prefetch_related(
         Prefetch('users__profile', to_attr='user_profile')
     )[:20]
 
+    # 7. Pass everything to the template
     context = {
-        "products": qs,
+        "products": qs.distinct(),
         "wholesalers": wholesalers,
-        "categories": Category.objects.all(),
+        "filter_form": filter_form,
     }
     return render(request, "catalog/product_list.html", context)
+# --- END OF REPLACEMENT ---
 
-# ... (rest of your views.py file) ...
 
 def product_detail(request, pk):
+    # ... (this view remains the same)
     product = get_object_or_404(Product.objects.select_related("category", "owner"), pk=pk, is_active=True)
     related = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:4]
     return render(request, "catalog/product_detail.html", {"product": product, "related": related})
@@ -90,6 +125,7 @@ def product_detail(request, pk):
 @login_required
 @user_passes_test(require_wholesaler)
 def wholesaler_dashboard(request):
+    # ... (this view remains the same)
     org = request.user.organization
     
     # Base queryset for all active products for the wholesaler
@@ -124,7 +160,7 @@ def wholesaler_dashboard(request):
     return render(request, "catalog/wholesaler_dashboard.html", context)
 
 
-# ... (The rest of your views.py file remains the same)
+# ... (The rest of your views.py file remains the same) ...
 
 # ---------------------------------------------------------------------
 # Product add/edit (Updated)
@@ -132,6 +168,7 @@ def wholesaler_dashboard(request):
 @login_required
 @user_passes_test(require_wholesaler)
 def product_add(request):
+    # ... (this view remains the same)
     org = request.user.organization
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
@@ -205,6 +242,7 @@ def product_add(request):
 @login_required
 @user_passes_test(require_wholesaler)
 def product_edit(request, pk):
+    # ... (this view remains the same)
     org = request.user.organization
     product = get_object_or_404(Product, pk=pk, owner=org)
 
@@ -291,6 +329,7 @@ def product_edit(request, pk):
 
 @login_required
 def product_image_delete(request, pk):
+    # ... (this view remains the same)
     if request.method != "POST":
         return HttpResponseForbidden("POST required")
 
@@ -320,6 +359,7 @@ def product_image_delete(request, pk):
 # ---------------------------------------------------------------------
 @login_required
 def category_sizes(request, category_id):
+    # ... (this view remains the same)
     sizes = CategorySize.objects.filter(category_id=category_id).select_related("size")
     data = [{"id": cs.size.id, "name": cs.size.name} for cs in sizes]
     return JsonResponse(data, safe=False)
@@ -332,6 +372,7 @@ def category_sizes(request, category_id):
 @user_passes_test(require_wholesaler)
 @require_POST
 def delete_product(request, pk):
+    # ... (this view remains the same)
     org = request.user.organization
     product = get_object_or_404(Product, pk=pk, owner=org)
 
@@ -346,6 +387,7 @@ def delete_product(request, pk):
 @login_required
 @user_passes_test(require_wholesaler)
 def wholesale_reports(request):
+    # ... (this view remains the same)
     org = request.user.organization
     today = timezone.now().date()
     start_date = today - timedelta(days=29)
@@ -395,6 +437,7 @@ def wholesale_reports(request):
 
 
 def reports_export_csv(request):
+    # ... (this view remains the same)
     """
     Simple CSV export of best_sellers and product stock for the wholesaler.
     """
@@ -437,6 +480,7 @@ def reports_export_csv(request):
 # Home page
 # ---------------------------------------------------------------------
 def home(request):
+    # ... (this view remains the same)
     hero = Hero.objects.filter(is_active=True).order_by('order').first()
     if not hero:
         hero = Hero.objects.last()  # fallback
@@ -453,6 +497,7 @@ def home(request):
     })
 
 def help_support(request):
+    # ... (this view remains the same)
     """
     Renders the help and support page.
     """
